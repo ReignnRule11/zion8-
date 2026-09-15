@@ -106,16 +106,23 @@ which directly serves the "preserve church history" goal.
 
 ## Security model
 
-- **Credentials**: Argon2id with per-deployment cost parameters.
-- **Access tokens**: short-lived JWTs carrying user, tenant, and role claims.
-- **Refresh tokens**: opaque, hashed at rest, rotated on every use, with reuse detection that
-  revokes the token family on suspected theft.
+- **Credentials**: Argon2id with per-deployment cost parameters. Passwords live in a dedicated
+  credential table, never on the user row.
+- **Access tokens**: short-lived JWTs carrying user, tenant, role, session, assurance level, and
+  authentication-method claims.
+- **Sessions**: first-class and revocable. Refresh tokens are opaque, hashed at rest, rotated on
+  every use, and belong to a session. Reuse of a rotated token revokes the session, and the guard
+  verifies the session on every request, so revocation is immediate rather than deferred to token
+  expiry.
+- **Multi-factor**: TOTP, passkeys (WebAuthn), and single-use recovery codes, with assurance levels
+  (`AAL1`/`AAL2`/`AAL3`) carried in the token and enforced per endpoint.
 - **Authorization**: role-based permissions resolved per tenant, enforced by guards at the
   interface layer and by RLS at the data layer.
 - **Defense in depth**: even a bug in a guard cannot cross tenant boundaries, because the
   database refuses the query.
 
-See `docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail.
+See `docs/architecture/AUTHENTICATION.md` for the full authentication model and
+`docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail.
 
 ## Observability
 

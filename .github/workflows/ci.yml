@@ -49,6 +49,11 @@ jobs:
       MIGRATION_DATABASE_URL: postgresql://zion8:zion8-owner-dev-password@localhost:5432/zion8?schema=public
       REDIS_URL: redis://localhost:6379
       JWT_ACCESS_SECRET: ci-only-access-secret-with-enough-length
+      APP_BASE_URL: http://localhost:4000
+      WEB_BASE_URL: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3000
+      WEBAUTHN_ORIGINS: http://localhost:3000
+      ENCRYPTION_KEY: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=
       NODE_ENV: test
 
     steps:
@@ -79,6 +84,10 @@ jobs:
           CREATE EXTENSION IF NOT EXISTS citext;
           GRANT CONNECT ON DATABASE zion8 TO zion8_app;
           GRANT USAGE ON SCHEMA public TO zion8_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE zion8 IN SCHEMA public
+            GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO zion8_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE zion8 IN SCHEMA public
+            GRANT USAGE, SELECT ON SEQUENCES TO zion8_app;
           SQL
 
       - name: Generate Prisma client

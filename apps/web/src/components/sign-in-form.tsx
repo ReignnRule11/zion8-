@@ -67,6 +67,12 @@ export function SignInForm() {
         {isPending ? 'Signing in...' : 'Sign in'}
       </button>
 
+      <p className="text-right text-sm">
+        <Link href="/forgot-password" className="text-zion-300 hover:text-zion-200 font-medium">
+          Forgot password?
+        </Link>
+      </p>
+
       <p className="text-center text-sm text-slate-400">
         New to Zion8?{' '}
         <Link href="/sign-up" className="text-zion-300 hover:text-zion-200 font-medium">

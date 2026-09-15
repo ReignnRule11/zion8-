@@ -82,16 +82,16 @@ describe('TokenService refresh token helpers', () => {
     const first = service.issueRefreshToken();
     const second = service.issueRefreshToken();
     expect(first.token).not.toBe(second.token);
-    expect(first.familyId).not.toBe(second.familyId);
+    expect(first.sessionId).not.toBe(second.sessionId);
     expect(first.token.length).toBeGreaterThanOrEqual(64);
     expect(first.expiresAt.getTime()).toBeGreaterThan(Date.now());
   });
 
-  it('keeps rotation inside the same family when a session id is supplied', () => {
+  it('keeps rotation inside the same session when a session id is supplied', () => {
     const service = buildService();
     const sessionId = service.newSessionId();
     const rotated = service.issueRefreshToken(sessionId);
-    expect(rotated.familyId).toBe(sessionId);
+    expect(rotated.sessionId).toBe(sessionId);
   });
 
   it('hashes refresh tokens deterministically without storing the secret', () => {

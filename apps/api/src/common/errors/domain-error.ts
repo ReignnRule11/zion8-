@@ -13,6 +13,17 @@ const DEFAULT_STATUS: Partial<Record<ErrorCode, number>> = {
   [ErrorCode.TENANT_SLUG_TAKEN]: 409,
   [ErrorCode.TENANT_MEMBERSHIP_REQUIRED]: 403,
   [ErrorCode.EMAIL_ALREADY_REGISTERED]: 409,
+  [ErrorCode.IDENTITY_ALREADY_LINKED]: 409,
+  [ErrorCode.INVALID_CHALLENGE]: 400,
+  [ErrorCode.CHALLENGE_EXPIRED]: 400,
+  [ErrorCode.CHALLENGE_CONSUMED]: 400,
+  [ErrorCode.MFA_REQUIRED]: 401,
+  [ErrorCode.MFA_INVALID_CODE]: 401,
+  [ErrorCode.MFA_FACTOR_NOT_FOUND]: 404,
+  [ErrorCode.WEBAUTHN_FAILED]: 400,
+  [ErrorCode.OAUTH_FAILED]: 400,
+  [ErrorCode.OAUTH_PROVIDER_UNAVAILABLE]: 503,
+  [ErrorCode.CONTACT_NOT_VERIFIED]: 403,
   [ErrorCode.RESOURCE_NOT_FOUND]: 404,
   [ErrorCode.RESOURCE_CONFLICT]: 409,
   [ErrorCode.RATE_LIMITED]: 429,
@@ -81,6 +92,50 @@ export class DomainError extends Error {
 
   static emailRegistered(message = 'An account with this email already exists'): DomainError {
     return new DomainError(ErrorCode.EMAIL_ALREADY_REGISTERED, message);
+  }
+
+  static identityLinked(message = 'This account is already linked to another user'): DomainError {
+    return new DomainError(ErrorCode.IDENTITY_ALREADY_LINKED, message);
+  }
+
+  static invalidChallenge(message = 'This link or code is not valid'): DomainError {
+    return new DomainError(ErrorCode.INVALID_CHALLENGE, message);
+  }
+
+  static challengeExpired(message = 'This link or code has expired'): DomainError {
+    return new DomainError(ErrorCode.CHALLENGE_EXPIRED, message);
+  }
+
+  static challengeConsumed(message = 'This link or code has already been used'): DomainError {
+    return new DomainError(ErrorCode.CHALLENGE_CONSUMED, message);
+  }
+
+  static mfaRequired(message = 'Multi-factor authentication is required'): DomainError {
+    return new DomainError(ErrorCode.MFA_REQUIRED, message);
+  }
+
+  static mfaInvalidCode(message = 'That verification code is not valid'): DomainError {
+    return new DomainError(ErrorCode.MFA_INVALID_CODE, message);
+  }
+
+  static mfaFactorNotFound(message = 'That authentication method was not found'): DomainError {
+    return new DomainError(ErrorCode.MFA_FACTOR_NOT_FOUND, message);
+  }
+
+  static webauthnFailed(message = 'Passkey verification failed'): DomainError {
+    return new DomainError(ErrorCode.WEBAUTHN_FAILED, message);
+  }
+
+  static oauthFailed(message = 'Sign-in with the provider failed'): DomainError {
+    return new DomainError(ErrorCode.OAUTH_FAILED, message);
+  }
+
+  static oauthProviderUnavailable(message = 'This sign-in provider is not available'): DomainError {
+    return new DomainError(ErrorCode.OAUTH_PROVIDER_UNAVAILABLE, message);
+  }
+
+  static contactNotVerified(message = 'Please verify your contact details first'): DomainError {
+    return new DomainError(ErrorCode.CONTACT_NOT_VERIFIED, message);
   }
 
   static notFound(message = 'Resource not found'): DomainError {

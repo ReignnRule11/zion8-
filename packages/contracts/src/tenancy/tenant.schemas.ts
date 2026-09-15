@@ -47,7 +47,8 @@ export type MembershipSummary = z.infer<typeof membershipSummarySchema>;
 
 export const principalSchema = z.object({
   userId: uuidSchema,
-  email: z.string().email(),
+  email: z.string().email().nullable(),
+  phone: z.string().nullable(),
   firstName: personNameSchema,
   lastName: personNameSchema,
   isPlatformAdmin: z.boolean(),

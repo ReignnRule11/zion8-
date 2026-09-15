@@ -38,6 +38,54 @@ enum Role {
   VISITOR
 }
 
+/// Identity providers a user can authenticate with. EMAIL and PHONE are
+/// first-party identifiers; the rest are federated OpenID Connect providers.
+enum IdentityProvider {
+  EMAIL
+  PHONE
+  GOOGLE
+  APPLE
+  MICROSOFT
+}
+
+/// Why a verification challenge was issued. Every purpose shares the same
+/// hashed, expiring, attempt-limited, single-use lifecycle.
+enum ChallengePurpose {
+  EMAIL_VERIFICATION
+  PHONE_VERIFICATION
+  PASSWORD_RESET
+  MAGIC_LINK
+  EMAIL_OTP
+  SMS_OTP
+  CHANGE_EMAIL
+  CHANGE_PHONE
+}
+
+enum MfaFactorType {
+  TOTP
+  WEBAUTHN
+}
+
+enum MfaFactorStatus {
+  PENDING
+  ACTIVE
+  DISABLED
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+/// Authentication assurance level, aligned with NIST SP 800-63B.
+/// AAL1: single factor. AAL2: multi-factor. AAL3: phishing-resistant.
+enum AssuranceLevel {
+  AAL1
+  AAL2
+  AAL3
+}
+
 model Tenant {
   id        String       @id @default(uuid()) @db.Uuid
   slug      String       @unique @db.VarChar(40)
@@ -48,33 +96,48 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
-  memberships   Membership[]
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]
+  memberships    Membership[]
+  refreshTokens  RefreshToken[]
+  auditLogs      AuditLog[]
+  sessions       AuthSession[]
+  challenges     VerificationChallenge[]
 
   @@map("tenants")
 }
 
+/// Global user record. `email` and `phone` are nullable denormalized primary
+/// contacts for administration and search; UserIdentity is authoritative for
+/// how a user can actually authenticate. At least one contact is enforced by a
+/// database check constraint.
 model User {
-  id              String     @id @default(uuid()) @db.Uuid
-  email           String     @unique @db.VarChar(320)
-  passwordHash    String     @map("password_hash") @db.VarChar(255)
-  firstName       String     @map("first_name") @db.VarChar(120)
-  lastName        String     @map("last_name") @db.VarChar(120)
-  status          UserStatus @default(ACTIVE)
-  isPlatformAdmin Boolean    @default(false) @map("is_platform_admin")
-  emailVerifiedAt DateTime?  @map("email_verified_at")
-  lastLoginAt     DateTime?  @map("last_login_at")
-  createdAt       DateTime   @default(now()) @map("created_at")
-  updatedAt       DateTime   @updatedAt @map("updated_at")
+  id                String     @id @default(uuid()) @db.Uuid
+  email             String?    @unique @db.VarChar(320)
+  phone             String?    @unique @db.VarChar(32)
+  firstName         String     @map("first_name") @db.VarChar(120)
+  lastName          String     @map("last_name") @db.VarChar(120)
+  status            UserStatus @default(ACTIVE)
+  isPlatformAdmin   Boolean    @default(false) @map("is_platform_admin")
+  emailVerifiedAt   DateTime?  @map("email_verified_at")
+  phoneVerifiedAt   DateTime?  @map("phone_verified_at")
+  lastLoginAt       DateTime?  @map("last_login_at")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
 
-  memberships   Membership[]
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]
+  memberships      Membership[]
+  refreshTokens    RefreshToken[]
+  auditLogs        AuditLog[]
+  identities       UserIdentity[]
+  password         PasswordCredential?
+  sessions         AuthSession[]
+  challenges       VerificationChallenge[]
+  mfaFactors       MfaFactor[]
+  webauthnCredentials WebAuthnCredential[]
+  recoveryCodes    MfaRecoveryCode[]
 
   @@map("users")
 }
 
+/// A user's membership in a church workspace, carrying their role there.
 model Membership {
   id        String           @id @default(uuid()) @db.Uuid
   tenantId  String           @map("tenant_id") @db.Uuid
@@ -93,11 +156,82 @@ model Membership {
   @@map("memberships")
 }
 
+/// One row per way a user can authenticate. A user may have several: an email
+/// identity, a phone identity, and any number of federated provider identities.
+model UserIdentity {
+  id                String           @id @default(uuid()) @db.Uuid
+  userId            String           @map("user_id") @db.Uuid
+  provider          IdentityProvider
+  providerAccountId String           @map("provider_account_id") @db.VarChar(320)
+  email             String?          @db.VarChar(320)
+  phone             String?          @db.VarChar(32)
+  isPrimary         Boolean          @default(false) @map("is_primary")
+  verifiedAt        DateTime?        @map("verified_at")
+  profile           Json             @default("{}") @db.JsonB
+  createdAt         DateTime         @default(now()) @map("created_at")
+  lastUsedAt        DateTime?        @map("last_used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([email])
+  @@map("user_identities")
+}
+
+/// Password is a credential, not a property of the user. Keeping it in its own
+/// table lets a user exist without a password (phone-only or federated-only).
+model PasswordCredential {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @unique @map("user_id") @db.Uuid
+  passwordHash      String   @map("password_hash") @db.VarChar(255)
+  algorithm         String   @default("argon2id") @db.VarChar(32)
+  needsRehash       Boolean  @default(false) @map("needs_rehash")
+  passwordChangedAt DateTime @default(now()) @map("password_changed_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_credentials")
+}
+
+/// A login session, distinct from the refresh tokens that rotate inside it.
+/// This is what a user sees and revokes in "your devices".
+model AuthSession {
+  id                   String         @id @default(uuid()) @db.Uuid
+  userId               String         @map("user_id") @db.Uuid
+  tenantId             String?        @map("tenant_id") @db.Uuid
+  status               SessionStatus  @default(ACTIVE)
+  assuranceLevel       AssuranceLevel @default(AAL1) @map("assurance_level")
+  deviceName           String?        @map("device_name") @db.VarChar(120)
+  userAgent            String?        @map("user_agent") @db.VarChar(512)
+  ipAddress            String?        @map("ip_address") @db.VarChar(64)
+  mfaSatisfiedAt       DateTime?      @map("mfa_satisfied_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  lastSeenAt           DateTime       @default(now()) @map("last_seen_at")
+  lastAuthenticatedAt  DateTime       @default(now()) @map("last_authenticated_at")
+  expiresAt            DateTime       @map("expires_at")
+  revokedAt            DateTime?      @map("revoked_at")
+  revokedReason        String?        @map("revoked_reason") @db.VarChar(120)
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant        Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@index([userId, status])
+  @@index([tenantId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+/// Rotating refresh token. Hashed at rest. `sessionId` is the session family:
+/// rotating a token replaces the row but keeps the same session.
 model RefreshToken {
   id                String    @id @default(uuid()) @db.Uuid
   userId            String    @map("user_id") @db.Uuid
+  sessionId         String    @map("session_id") @db.Uuid
   tenantId          String?   @map("tenant_id") @db.Uuid
-  familyId          String    @map("family_id") @db.Uuid
   tokenHash         String    @unique @map("token_hash") @db.VarChar(128)
   expiresAt         DateTime  @map("expires_at")
   revokedAt         DateTime? @map("revoked_at")
@@ -106,27 +240,114 @@ model RefreshToken {
   ipAddress         String?   @map("ip_address") @db.VarChar(64)
   createdAt         DateTime  @default(now()) @map("created_at")
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session AuthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tenant  Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([familyId])
+  @@index([sessionId])
   @@index([tenantId])
   @@index([expiresAt])
   @@map("refresh_tokens")
 }
 
+/// Single primitive behind email verification, phone verification, password
+/// reset, magic links, and email or SMS one-time codes. The secret is stored
+/// only as a SHA-256 hash.
+model VerificationChallenge {
+  id          String           @id @default(uuid()) @db.Uuid
+  purpose     ChallengePurpose
+  userId      String?          @map("user_id") @db.Uuid
+  tenantId    String?          @map("tenant_id") @db.Uuid
+  identifier  String           @db.VarChar(320)
+  secretHash  String           @unique @map("secret_hash") @db.VarChar(128)
+  attempts    Int              @default(0)
+  maxAttempts Int              @default(5) @map("max_attempts")
+  metadata    Json             @default("{}") @db.JsonB
+  ipAddress   String?          @map("ip_address") @db.VarChar(64)
+  userAgent   String?          @map("user_agent") @db.VarChar(512)
+  expiresAt   DateTime         @map("expires_at")
+  consumedAt  DateTime?        @map("consumed_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([identifier, purpose])
+  @@index([expiresAt])
+  @@map("verification_challenges")
+}
+
+/// An enrolled multi-factor authenticator. TOTP factors carry an encrypted
+/// shared secret; WEBAUTHN factors are paired with a WebAuthnCredential.
+model MfaFactor {
+  id               String          @id @default(uuid()) @db.Uuid
+  userId           String          @map("user_id") @db.Uuid
+  type             MfaFactorType
+  status           MfaFactorStatus @default(PENDING)
+  name             String          @db.VarChar(120)
+  secretCiphertext String?         @map("secret_ciphertext") @db.Text
+  confirmedAt      DateTime?       @map("confirmed_at")
+  lastUsedAt       DateTime?       @map("last_used_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  webauthn   WebAuthnCredential?
+
+  @@index([userId, status])
+  @@map("mfa_factors")
+}
+
+/// Public-key credential for passkeys and platform authenticators (Touch ID,
+/// Windows Hello, Face ID, Android biometrics).
+model WebAuthnCredential {
+  id           String    @id @default(uuid()) @db.Uuid
+  factorId     String    @unique @map("factor_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  credentialId String    @unique @map("credential_id") @db.VarChar(512)
+  publicKey    Bytes     @map("public_key")
+  signCount    Int       @default(0) @map("sign_count")
+  transports   String[]  @default([])
+  aaguid       String?   @db.VarChar(64)
+  deviceType   String?   @map("device_type") @db.VarChar(32)
+  backedUp     Boolean   @default(false) @map("backed_up")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastUsedAt   DateTime? @map("last_used_at")
+
+  factor MfaFactor @relation(fields: [factorId], references: [id], onDelete: Cascade)
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("webauthn_credentials")
+}
+
+/// Single-use recovery codes, stored only as hashes.
+model MfaRecoveryCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @unique @map("code_hash") @db.VarChar(128)
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, usedAt])
+  @@map("mfa_recovery_codes")
+}
+
 model AuditLog {
-  id          String   @id @default(uuid()) @db.Uuid
-  tenantId    String?  @map("tenant_id") @db.Uuid
-  actorUserId String?  @map("actor_user_id") @db.Uuid
-  action      String   @db.VarChar(120)
-  resourceType String  @map("resource_type") @db.VarChar(120)
-  resourceId  String?  @map("resource_id") @db.VarChar(120)
-  metadata    Json     @default("{}") @db.JsonB
-  ipAddress   String?  @map("ip_address") @db.VarChar(64)
-  userAgent   String?  @map("user_agent") @db.VarChar(512)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String?  @map("tenant_id") @db.Uuid
+  actorUserId  String?  @map("actor_user_id") @db.Uuid
+  action       String   @db.VarChar(120)
+  resourceType String   @map("resource_type") @db.VarChar(120)
+  resourceId   String?  @map("resource_id") @db.VarChar(120)
+  metadata     Json     @default("{}") @db.JsonB
+  ipAddress    String?  @map("ip_address") @db.VarChar(64)
+  userAgent    String?  @map("user_agent") @db.VarChar(512)
+  createdAt    DateTime @default(now()) @map("created_at")
 
   tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   actor  User?   @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
