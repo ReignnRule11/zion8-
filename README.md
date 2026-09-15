@@ -63,6 +63,7 @@ scaled.
 apps/
   api/                 NestJS API (modular monolith, versioned under /api/v1)
   web/                 Next.js 15 App Router frontend
+  mobile/              Flutter application sharing the same HTTP contracts
 packages/
   contracts/           Canonical Zod schemas shared by every client
   config/              Shared TypeScript configuration presets
@@ -72,7 +73,9 @@ docs/                  Architecture and operational documentation
 ```
 
 The Flutter mobile application is intentionally decoupled from the TypeScript workspace. It
-consumes the same versioned HTTP API through generated clients.
+consumes the same versioned HTTP API and mirrors the wire contracts in Dart. See
+`docs/architecture/MOBILE_AUTHENTICATION.md` for the mobile authentication flows, token storage
+strategy, and deep-link handling.
 
 ## Getting started
 
@@ -82,6 +85,7 @@ consumes the same versioned HTTP API through generated clients.
 - pnpm 10+
 - PostgreSQL 15+ with the `vector`, `pgcrypto`, and `citext` extensions
 - Redis 7+
+- Flutter 3.47+ (only for the mobile application)
 
 ### Install
 
@@ -128,6 +132,16 @@ pnpm turbo run build typecheck lint test
 
 # End-to-end auth and tenant-isolation tests against real Postgres and Redis
 pnpm --filter @zion8/api test:e2e
+```
+
+### Mobile
+
+```bash
+# Analyze and unit test the Flutter application
+cd apps/mobile
+flutter pub get
+flutter analyze
+flutter test
 ```
 
 ### Infrastructure with Docker

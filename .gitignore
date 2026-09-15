@@ -42,6 +42,7 @@ apps/api/prisma/*.db-journal
 # Flutter
 apps/mobile/.dart_tool/
 apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
 apps/mobile/build/
 
 # Turborepo
