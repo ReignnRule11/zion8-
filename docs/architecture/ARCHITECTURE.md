@@ -115,7 +115,7 @@ which directly serves the "preserve church history" goal.
 - **Defense in depth**: even a bug in a guard cannot cross tenant boundaries, because the
   database refuses the query.
 
-See `docs/MULTI_TENANCY.md` for the isolation mechanism in detail.
+See `docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail.
 
 ## Observability
 
