@@ -62,6 +62,62 @@ export class AppConfigService {
     return this.env.REFRESH_TTL_SECONDS;
   }
 
+  get encryptionKey(): Buffer {
+    return Buffer.from(this.env.ENCRYPTION_KEY, 'base64');
+  }
+
+  get verificationTtlSeconds(): number {
+    return this.env.VERIFICATION_TTL_SECONDS;
+  }
+
+  get magicLinkTtlSeconds(): number {
+    return this.env.MAGIC_LINK_TTL_SECONDS;
+  }
+
+  get mfaChallengeTtlSeconds(): number {
+    return this.env.MFA_CHALLENGE_TTL_SECONDS;
+  }
+
+  get totpIssuer(): string {
+    return this.env.TOTP_ISSUER;
+  }
+
+  get webBaseUrl(): string {
+    return this.env.WEB_BASE_URL;
+  }
+
+  get webauthn(): { rpId: string; rpName: string; origins: string[] } {
+    return {
+      rpId: this.env.WEBAUTHN_RP_ID,
+      rpName: this.env.WEBAUTHN_RP_NAME,
+      origins: this.env.WEBAUTHN_ORIGINS.length > 0 ? this.env.WEBAUTHN_ORIGINS : this.env.CORS_ORIGINS,
+    };
+  }
+
+  get oauth(): {
+    google: { clientId: string; clientSecret: string };
+    apple: { clientId: string; teamId: string; keyId: string; privateKey: string };
+    microsoft: { clientId: string; clientSecret: string; tenantId: string };
+  } {
+    return {
+      google: {
+        clientId: this.env.GOOGLE_CLIENT_ID,
+        clientSecret: this.env.GOOGLE_CLIENT_SECRET,
+      },
+      apple: {
+        clientId: this.env.APPLE_CLIENT_ID,
+        teamId: this.env.APPLE_TEAM_ID,
+        keyId: this.env.APPLE_KEY_ID,
+        privateKey: this.env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      },
+      microsoft: {
+        clientId: this.env.MICROSOFT_CLIENT_ID,
+        clientSecret: this.env.MICROSOFT_CLIENT_SECRET,
+        tenantId: this.env.MICROSOFT_TENANT_ID,
+      },
+    };
+  }
+
   get argon2Options(): { memoryCost: number; timeCost: number; parallelism: number } {
     return {
       memoryCost: this.env.ARGON2_MEMORY_COST,
@@ -72,5 +128,21 @@ export class AppConfigService {
 
   get logLevel(): Env['LOG_LEVEL'] {
     return this.env.LOG_LEVEL;
+  }
+
+  get notifications(): {
+    emailFrom: string;
+    resendApiKey: string;
+    smsFrom: string;
+    twilioAccountSid: string;
+    twilioAuthToken: string;
+  } {
+    return {
+      emailFrom: this.env.EMAIL_FROM_ADDRESS,
+      resendApiKey: this.env.RESEND_API_KEY,
+      smsFrom: this.env.SMS_FROM_NUMBER,
+      twilioAccountSid: this.env.TWILIO_ACCOUNT_SID,
+      twilioAuthToken: this.env.TWILIO_AUTH_TOKEN,
+    };
   }
 }

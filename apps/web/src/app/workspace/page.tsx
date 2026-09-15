@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import type { SessionListResponse } from '@zion8/contracts';
 import { ApiRequestError, api } from '@/lib/api-client';
 import { getAccessToken } from '@/lib/session';
+import { SessionList } from '@/components/session-list';
 import { SignOutButton } from '@/components/sign-out-button';
 
 export const metadata: Metadata = { title: 'Workspace' };
@@ -11,8 +13,9 @@ export default async function WorkspacePage() {
   if (!token) redirect('/sign-in');
 
   let profile;
+  let sessionList: SessionListResponse;
   try {
-    profile = await api.me(token);
+    [profile, sessionList] = await Promise.all([api.me(token), api.listSessions(token)]);
   } catch (error) {
     if (error instanceof ApiRequestError && error.isUnauthenticated) {
       redirect('/sign-in');
@@ -85,6 +88,14 @@ export default async function WorkspacePage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold tracking-tight">Active sessions</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Revoke any device you no longer recognise. Revoking signs it out immediately.
+        </p>
+        <SessionList sessions={sessionList.sessions} />
       </section>
 
       <section className="mt-10">

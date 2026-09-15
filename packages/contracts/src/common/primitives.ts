@@ -18,6 +18,11 @@ export const emailSchema = z
   .email('A valid email address is required')
   .max(320, 'Email must be at most 320 characters');
 
+export const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^\+[1-9]\d{6,14}$/, 'Phone number must be in E.164 format, e.g. +14155552671');
+
 export const personNameSchema = z
   .string()
   .trim()
@@ -34,3 +39,4 @@ export const passwordSchema = z
 export type Uuid = z.infer<typeof uuidSchema>;
 export type Slug = z.infer<typeof slugSchema>;
 export type Email = z.infer<typeof emailSchema>;
+export type Phone = z.infer<typeof phoneSchema>;
