@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+  background-image:
+    radial-gradient(60rem 60rem at 15% -10%, rgba(79, 70, 229, 0.22), transparent 60%),
+    radial-gradient(50rem 50rem at 95% 0%, rgba(56, 189, 248, 0.14), transparent 55%);
+  background-attachment: fixed;
+}
+
+::selection {
+  @apply bg-zion-500/40;
+}

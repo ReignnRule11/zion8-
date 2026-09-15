@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10.34.5'
+
+jobs:
+  verify:
+    name: Build, typecheck, lint and test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: zion8
+          POSTGRES_PASSWORD: zion8-owner-dev-password
+          POSTGRES_DB: zion8
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U zion8 -d zion8"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://zion8_app:zion8-app-dev-password@localhost:5432/zion8?schema=public&connection_limit=10
+      MIGRATION_DATABASE_URL: postgresql://zion8:zion8-owner-dev-password@localhost:5432/zion8?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-only-access-secret-with-enough-length
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Provision database roles and extensions
+        run: |
+          PGPASSWORD=zion8-owner-dev-password psql -h localhost -U zion8 -d zion8 -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE zion8_app WITH LOGIN PASSWORD 'zion8-app-dev-password'
+            NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+          CREATE EXTENSION IF NOT EXISTS vector;
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          CREATE EXTENSION IF NOT EXISTS citext;
+          GRANT CONNECT ON DATABASE zion8 TO zion8_app;
+          GRANT USAGE ON SCHEMA public TO zion8_app;
+          SQL
+
+      - name: Generate Prisma client
+        run: pnpm --filter @zion8/api prisma:generate
+
+      - name: Build
+        run: pnpm turbo run build
+
+      - name: Typecheck
+        run: pnpm turbo run typecheck
+
+      - name: Lint
+        run: pnpm turbo run lint
+
+      - name: Unit tests
+        run: pnpm turbo run test
+
+      - name: Apply database migrations
+        run: pnpm --filter @zion8/api prisma:migrate
+
+      - name: End-to-end tests
+        run: pnpm --filter @zion8/api test:e2e
