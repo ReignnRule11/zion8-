@@ -51,8 +51,11 @@ that is structured for later extraction into microservices.
 - **Multi-tenancy** via a shared database with PostgreSQL Row-Level Security, so tenant
   isolation is enforced by the database rather than by application discipline.
 
-See `docs/ARCHITECTURE.md` for the detailed design and `docs/MULTI_TENANCY.md` for the
-isolation model.
+See `docs/architecture/ARCHITECTURE.md` for the detailed design,
+`docs/architecture/MULTI_TENANCY.md` for the isolation model,
+`docs/architecture/AUTHENTICATION.md` for the enterprise authentication model, and
+`docs/architecture/REPOSITORY_STRUCTURE.md` for how the repository is organized, worked in, and
+scaled.
 
 ## Repository layout
 

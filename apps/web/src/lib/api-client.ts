@@ -1,13 +1,17 @@
 import {
   apiErrorSchema,
+  loginResultSchema,
   meResponseSchema,
   sessionSchema,
+  sessionListResponseSchema,
   type LoginRequest,
+  type LoginResult,
   type LogoutRequest,
   type MeResponse,
   type RefreshRequest,
   type RegisterChurchRequest,
   type Session,
+  type SessionListResponse,
 } from '@zion8/contracts';
 import type { ZodSchema } from 'zod';
 import { z } from 'zod';
@@ -36,7 +40,7 @@ export class ApiRequestError extends Error {
 }
 
 interface RequestOptions<T> {
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'DELETE';
   path: string;
   schema: ZodSchema<T>;
   body?: unknown;
@@ -90,12 +94,93 @@ export const api = {
     });
   },
 
-  login(input: LoginRequest): Promise<Session> {
+  login(input: LoginRequest): Promise<LoginResult> {
     return apiRequest({
       method: 'POST',
       path: '/auth/login',
+      schema: loginResultSchema,
+      body: input,
+    });
+  },
+
+  verifyMfa(input: { mfaToken: string; code: string }): Promise<Session> {
+    return apiRequest({
+      method: 'POST',
+      path: '/auth/mfa/verify',
       schema: sessionSchema,
       body: input,
+    });
+  },
+
+  verifyRecoveryCode(input: { mfaToken: string; recoveryCode: string }): Promise<Session> {
+    return apiRequest({
+      method: 'POST',
+      path: '/auth/mfa/recovery',
+      schema: sessionSchema,
+      body: input,
+    });
+  },
+
+  requestMagicLink(input: { email: string; tenantSlug?: string }): Promise<void> {
+    return apiRequest({
+      method: 'POST',
+      path: '/auth/magic-link',
+      schema: voidSchema,
+      body: input,
+    });
+  },
+
+  consumeMagicLink(input: { token: string; tenantSlug?: string }): Promise<LoginResult> {
+    return apiRequest({
+      method: 'POST',
+      path: '/auth/magic-link/consume',
+      schema: loginResultSchema,
+      body: input,
+    });
+  },
+
+  requestPasswordReset(input: { email: string }): Promise<void> {
+    return apiRequest({
+      method: 'POST',
+      path: '/auth/password/reset',
+      schema: voidSchema,
+      body: input,
+    });
+  },
+
+  resetPassword(input: { token: string; newPassword: string }): Promise<void> {
+    return apiRequest({
+      method: 'POST',
+      path: '/auth/password/reset/consume',
+      schema: voidSchema,
+      body: input,
+    });
+  },
+
+  listSessions(token: string): Promise<SessionListResponse> {
+    return apiRequest({
+      method: 'GET',
+      path: '/auth/sessions',
+      schema: sessionListResponseSchema,
+      token,
+    });
+  },
+
+  revokeSession(token: string, sessionId: string): Promise<void> {
+    return apiRequest({
+      method: 'DELETE',
+      path: `/auth/sessions/${sessionId}`,
+      schema: voidSchema,
+      token,
+    });
+  },
+
+  verifyEmail(token: string): Promise<void> {
+    return apiRequest({
+      method: 'POST',
+      path: '/auth/email/verify/consume',
+      schema: voidSchema,
+      body: { token },
     });
   },
 

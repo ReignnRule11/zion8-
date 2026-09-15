@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import jwt from 'jsonwebtoken';
-import type { AccessTokenClaims, Role } from '@zion8/contracts';
+import type { AccessTokenClaims, AssuranceLevel, AuthenticationMethod, Role } from '@zion8/contracts';
 import { AppConfigService } from '../../common/config/app-config.service';
 import { DomainError } from '../../common/errors/domain-error';
 
@@ -10,17 +10,20 @@ const JWT_AUDIENCE = 'zion8-api';
 
 export interface AccessTokenInput {
   userId: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
   isPlatformAdmin: boolean;
   tenantId: string | null;
   role: Role | null;
   sessionId: string;
+  assuranceLevel: AssuranceLevel;
+  methods: AuthenticationMethod[];
 }
 
 export interface IssuedRefreshToken {
   token: string;
   tokenHash: string;
-  familyId: string;
+  sessionId: string;
   expiresAt: Date;
 }
 
@@ -37,12 +40,11 @@ export class TokenService {
   }
 
   issueRefreshToken(sessionId?: string): IssuedRefreshToken {
-    const familyId = sessionId ?? randomUUID();
     const token = randomBytes(48).toString('base64url');
     return {
       token,
       tokenHash: this.hashRefreshToken(token),
-      familyId,
+      sessionId: sessionId ?? randomUUID(),
       expiresAt: this.refreshExpiry(),
     };
   }
@@ -60,10 +62,13 @@ export class TokenService {
     const token = jwt.sign(
       {
         email: input.email,
+        phone: input.phone,
         isPlatformAdmin: input.isPlatformAdmin,
         tenantId: input.tenantId,
         role: input.role,
         sessionId: input.sessionId,
+        aal: input.assuranceLevel,
+        amr: input.methods,
       },
       this.config.jwtAccessSecret,
       {
@@ -87,11 +92,10 @@ export class TokenService {
       if (typeof payload === 'string') {
         throw DomainError.unauthenticated('Malformed access token');
       }
-      const { sub, email, isPlatformAdmin, tenantId, role, sessionId, iat, exp } =
+      const { sub, email, phone, isPlatformAdmin, tenantId, role, sessionId, aal, amr, iat, exp } =
         payload as Record<string, unknown>;
       if (
         typeof sub !== 'string' ||
-        typeof email !== 'string' ||
         typeof sessionId !== 'string' ||
         typeof iat !== 'number' ||
         typeof exp !== 'number'
@@ -100,11 +104,14 @@ export class TokenService {
       }
       return {
         sub,
-        email,
+        email: typeof email === 'string' ? email : null,
+        phone: typeof phone === 'string' ? phone : null,
         isPlatformAdmin: Boolean(isPlatformAdmin),
         tenantId: typeof tenantId === 'string' ? tenantId : null,
         role: (role as Role | null) ?? null,
         sessionId,
+        aal: (aal as AssuranceLevel | undefined) ?? 'AAL1',
+        amr: Array.isArray(amr) ? (amr as AuthenticationMethod[]) : [],
         iat,
         exp,
       };

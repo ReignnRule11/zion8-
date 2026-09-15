@@ -1,6 +1,7 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AppConfigModule } from './common/config/app-config.module';
+import { CryptoModule } from './common/crypto/crypto.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { RequestContextMiddleware } from './common/context/request-context.middleware';
 import { GlobalExceptionFilter } from './common/errors/global-exception.filter';
@@ -16,6 +17,7 @@ import { TenancyModule } from './modules/tenancy/tenancy.module';
 @Module({
   imports: [
     AppConfigModule,
+    CryptoModule,
     LoggerModule,
     PrismaModule,
     RedisModule,

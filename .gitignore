@@ -25,6 +25,9 @@ npm-debug.log*
 pnpm-debug.log*
 logs/
 
+# Redis
+dump.rdb
+
 # Editors / OS
 .DS_Store
 .idea/
