@@ -61,13 +61,13 @@ modules with genuinely different scaling and availability profiles.
 | `auth` | Identity, credentials, sessions, refresh rotation, RBAC | Implemented |
 | `tenancy` | Tenant lifecycle, memberships, tenant context resolution | Implemented |
 | `onboarding` | Church setup journey, workspace profile, invitations, subscription, branding, member import | Implemented |
-| `membership` | People, households, pastoral records | Planned |
+| `membership` | People, households, pastoral records | Implemented |
 | `attendance` | Services, check-in, attendance history | Planned |
 | `events` | Calendar, registration, facilities | Planned |
 | `giving` | Contributions, funds, statements | Planned |
 | `accounting` | Ledgers, budgets, reconciliation | Planned |
 | `care` | Prayer requests, counseling, follow-up | Planned |
-| `memory` | Sermons, documents, archives, timeline | Planned |
+| `memory` | Sermons, documents, archives, timeline | In progress |
 | `ai` | Embeddings, semantic search, grounded answers | Planned |
 
 ## Layers inside a module

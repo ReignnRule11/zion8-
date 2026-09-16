@@ -149,6 +149,101 @@ enum AssuranceLevel {
   AAL3
 }
 
+/// The kind of institutional memory an artifact holds. Modality (still image,
+/// document, audio, video) is an attribute of the kind, not a separate table, so
+/// one pipeline and one retrieval surface serves the whole archive.
+enum MemoryArtifactKind {
+  PHOTO
+  DOCUMENT
+  AUDIO
+  VIDEO
+  SERMON
+  WORSHIP_SET
+  MEETING_MINUTE
+  BULLETIN
+  CERTIFICATE
+  CORRESPONDENCE
+  HISTORICAL
+  OTHER
+}
+
+enum MemoryArtifactStatus {
+  PENDING
+  PROCESSING
+  READY
+  PARTIAL
+  FAILED
+  ARCHIVED
+}
+
+/// Where an artifact came from. A document uploaded to a member is also
+/// institutional memory, so the engine links to it instead of copying bytes.
+enum MemoryArtifactOrigin {
+  UPLOAD
+  MEMBERSHIP_DOCUMENT
+  MEMBER_IMPORT
+  EXTERNAL
+}
+
+/// How precisely the capture date is known. Recording the precision keeps the
+/// timeline honest: a labelled 1952 photograph is a YEAR, not an invented day.
+enum CaptureDatePrecision {
+  EXACT
+  DAY
+  MONTH
+  YEAR
+  DECADE
+  UNKNOWN
+}
+
+/// What an artifact can be attached to. One enum keeps every link in one table,
+/// so "everything about this member" is a single indexed lookup.
+enum MemoryLinkType {
+  MEMBER
+  FAMILY
+  DEPARTMENT
+  VISITOR
+  EVENT
+  SERMON
+  GIVING_FUND
+  TENANT
+}
+
+/// Lifecycle of a unit of asynchronous memory work. BLOCKED means the pipeline
+/// cannot proceed because a required capability is not configured; it is never
+/// treated as success.
+enum MemoryJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  BLOCKED
+  FAILED
+  CANCELLED
+}
+
+/// The processing stages a memory job moves through.
+enum MemoryJobType {
+  METADATA
+  EXTRACT
+  TRANSCRIBE
+  CATEGORIZE
+  CHUNK
+  EMBED
+  INDEX
+  GRAPH
+  TIMELINE
+}
+
+/// Durable queue state for a published integration event. The row is written in
+/// the same transaction as the state change that produced it, so no event is
+/// lost between the database and the message broker.
+enum OutboxEventStatus {
+  PENDING
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
 model Tenant {
   id        String       @id @default(uuid()) @db.Uuid
   slug      String       @unique @db.VarChar(40)
@@ -186,6 +281,13 @@ model Tenant {
   timelineEntries      MemberTimelineEntry[]
   documents            MemberDocument[]
   aiSummaries          MemberAiSummary[]
+
+  memoryArtifacts MemoryArtifact[]
+  memoryVersions  MemoryArtifactVersion[]
+  memoryLinks     MemoryArtifactLink[]
+  memoryTags      MemoryArtifactTag[]
+  memoryJobs      MemoryProcessingJob[]
+  outboxEvents    OutboxEvent[]
 
   @@map("tenants")
 }
@@ -1241,4 +1343,180 @@ model MemberImportJob {
   @@index([tenantId, createdAt])
   @@index([tenantId, status])
   @@map("member_import_jobs")
+}
+
+/// An item of institutional memory. This table is a superset of
+/// `member_documents`: a document uploaded against a member keeps living in the
+/// membership domain, and the engine links to it (origin MEMBERSHIP_DOCUMENT,
+/// source_resource_* pointing back) rather than moving or copying the bytes.
+///
+/// `current_version_id` is intentionally a bare UUID column with no foreign key.
+/// The version row and the artifact are written in one transaction and the
+/// pointer is set afterwards, so a hard FK would force a deferrable constraint
+/// for no benefit; `memory_artifact_versions.artifact_id` already guarantees the
+/// version belongs to this artifact.
+model MemoryArtifact {
+  id                    String               @id @default(uuid()) @db.Uuid
+  tenantId              String               @map("tenant_id") @db.Uuid
+  kind                  MemoryArtifactKind   @default(OTHER)
+  status                MemoryArtifactStatus @default(PENDING)
+  origin                MemoryArtifactOrigin @default(UPLOAD)
+  title                 String               @db.VarChar(200)
+  description           String?              @db.Text
+  capturedAt            DateTime?            @map("captured_at")
+  datePrecision         CaptureDatePrecision @default(UNKNOWN) @map("date_precision")
+  sourceResourceType    String?              @map("source_resource_type") @db.VarChar(60)
+  sourceResourceId      String?              @map("source_resource_id") @db.Uuid
+  currentVersionId      String?              @map("current_version_id") @db.Uuid
+  duplicateOfArtifactId String?              @map("duplicate_of_artifact_id") @db.Uuid
+  createdByUserId       String?              @map("created_by_user_id") @db.Uuid
+  archivedAt            DateTime?            @map("archived_at")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  tenant   Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions MemoryArtifactVersion[]
+  links    MemoryArtifactLink[]
+  tags     MemoryArtifactTag[]
+  jobs     MemoryProcessingJob[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, kind, status])
+  @@index([tenantId, capturedAt])
+  @@index([tenantId, status])
+  @@index([sourceResourceType, sourceResourceId])
+  @@map("memory_artifacts")
+}
+
+/// An immutable, content-addressed set of bytes. Re-uploading corrected metadata
+/// never destroys the original scan: it appends a version, and derived data
+/// (text, transcript, embeddings) is always tied to the version that produced it.
+model MemoryArtifactVersion {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  artifactId          String   @map("artifact_id") @db.Uuid
+  version             Int
+  sha256              String   @db.VarChar(64)
+  sizeBytes           BigInt   @map("size_bytes")
+  fileName            String   @map("file_name") @db.VarChar(255)
+  declaredContentType String   @map("declared_content_type") @db.VarChar(120)
+  detectedContentType String?  @map("detected_content_type") @db.VarChar(120)
+  storageKey          String   @map("storage_key") @db.VarChar(512)
+  isCurrent           Boolean  @default(true) @map("is_current")
+  createdByUserId     String?  @map("created_by_user_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  artifact MemoryArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([artifactId, version])
+  @@index([tenantId, sha256])
+  @@index([tenantId, createdAt])
+  @@index([artifactId, isCurrent])
+  @@map("memory_artifact_versions")
+}
+
+/// Attaches an artifact to any other resource (a member, a family, a department,
+/// a sermon). One table with a type discriminator keeps "all memory about this
+/// person" a single indexed query and lets new link targets be added without a
+/// schema change. `link_id` is a bare UUID because the target table varies.
+model MemoryArtifactLink {
+  id              String         @id @default(uuid()) @db.Uuid
+  tenantId        String         @map("tenant_id") @db.Uuid
+  artifactId      String         @map("artifact_id") @db.Uuid
+  linkType        MemoryLinkType @map("link_type")
+  linkId          String         @map("link_id") @db.Uuid
+  createdByUserId String?        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  artifact MemoryArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([artifactId, linkType, linkId])
+  @@index([tenantId, linkType, linkId])
+  @@map("memory_artifact_links")
+}
+
+/// Free-form labels for browsing and filtering. Tags are deliberately separate
+/// from the curated taxonomy in later phases: a tag is whatever a volunteer types,
+/// a category is something the engine assigns and an administrator can trust.
+model MemoryArtifactTag {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  artifactId String   @map("artifact_id") @db.Uuid
+  tag        String   @db.VarChar(64)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  artifact MemoryArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([artifactId, tag])
+  @@index([tenantId, tag])
+  @@map("memory_artifact_tags")
+}
+
+/// Durable outbox. A row is inserted in the same transaction as the state change
+/// that produced it, then published to the broker by a relay. This is the
+/// transactional guarantee that an artifact is never saved without its
+/// `memory.artifact.created` event becoming visible, and vice versa.
+///
+/// `tenant_id` is nullable to allow platform-level events, and the table is
+/// readable by the relay under the platform-admin RLS bypass.
+model OutboxEvent {
+  id            String            @id @default(uuid()) @db.Uuid
+  tenantId      String?           @map("tenant_id") @db.Uuid
+  eventType     String            @map("event_type") @db.VarChar(120)
+  aggregateType String            @map("aggregate_type") @db.VarChar(80)
+  aggregateId   String            @map("aggregate_id") @db.Uuid
+  payload       Json              @default("{}") @db.JsonB
+  headers       Json              @default("{}") @db.JsonB
+  status        OutboxEventStatus @default(PENDING)
+  attempts      Int               @default(0)
+  availableAt   DateTime          @default(now()) @map("available_at")
+  lastError     String?           @map("last_error") @db.Text
+  publishedAt   DateTime?         @map("published_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([status, availableAt])
+  @@index([tenantId, createdAt])
+  @@index([aggregateType, aggregateId])
+  @@map("outbox_events")
+}
+
+/// A unit of asynchronous memory work. Jobs are claimed by a worker with
+/// `FOR UPDATE SKIP LOCKED`, retried with a bounded attempt count, and — crucially
+/// — moved to BLOCKED when a required capability (OCR, speech-to-text) is not
+/// configured. A blocked job is visible and actionable, never silently "done".
+model MemoryProcessingJob {
+  id            String          @id @default(uuid()) @db.Uuid
+  tenantId      String          @map("tenant_id") @db.Uuid
+  artifactId    String          @map("artifact_id") @db.Uuid
+  versionId     String?         @map("version_id") @db.Uuid
+  type          MemoryJobType
+  status        MemoryJobStatus @default(PENDING)
+  priority      Int             @default(100)
+  attempts      Int             @default(0)
+  maxAttempts   Int             @default(5) @map("max_attempts")
+  availableAt   DateTime        @default(now()) @map("available_at")
+  startedAt     DateTime?       @map("started_at")
+  completedAt   DateTime?       @map("completed_at")
+  provider      String?         @db.VarChar(60)
+  blockedReason String?         @map("blocked_reason") @db.VarChar(120)
+  lastError     String?         @map("last_error") @db.Text
+  result        Json?           @db.JsonB
+  dedupeKey     String?         @map("dedupe_key") @db.VarChar(200)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  artifact MemoryArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@index([status, availableAt, priority])
+  @@index([tenantId, artifactId])
+  @@index([tenantId, type, status])
+  @@index([dedupeKey])
+  @@map("memory_processing_jobs")
 }

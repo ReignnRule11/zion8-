@@ -68,6 +68,20 @@ const DEFAULT_STATUS: Partial<Record<ErrorCode, number>> = {
   [ErrorCode.SUMMARY_NOT_FOUND]: 404,
   [ErrorCode.SUMMARY_GENERATION_FAILED]: 502,
   [ErrorCode.GRAPH_LIMIT_EXCEEDED]: 400,
+  // Memory. A missing artifact or version is 404; a link that already exists or
+  // an archived artifact that cannot be changed is 409; a payload the server
+  // refuses to store keeps the matching HTTP semantic.
+  [ErrorCode.MEMORY_ARTIFACT_NOT_FOUND]: 404,
+  [ErrorCode.MEMORY_ARTIFACT_TOO_LARGE]: 413,
+  [ErrorCode.MEMORY_ARTIFACT_TYPE_UNSUPPORTED]: 415,
+  [ErrorCode.MEMORY_ARTIFACT_UNAVAILABLE]: 503,
+  [ErrorCode.MEMORY_ARTIFACT_ARCHIVED]: 409,
+  [ErrorCode.MEMORY_ARTIFACT_VERSION_NOT_FOUND]: 404,
+  [ErrorCode.MEMORY_LINK_NOT_FOUND]: 404,
+  [ErrorCode.MEMORY_LINK_EXISTS]: 409,
+  [ErrorCode.MEMORY_PROCESSING_BLOCKED]: 409,
+  [ErrorCode.MEMORY_SEARCH_UNAVAILABLE]: 503,
+  [ErrorCode.MEMORY_ANSWER_UNAVAILABLE]: 503,
   [ErrorCode.RESOURCE_NOT_FOUND]: 404,
   [ErrorCode.RESOURCE_CONFLICT]: 409,
   [ErrorCode.RATE_LIMITED]: 429,

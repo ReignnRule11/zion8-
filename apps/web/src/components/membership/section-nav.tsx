@@ -11,13 +11,14 @@ const LINKS = [
   { href: '/community/departments', label: 'Departments' },
   { href: '/community/volunteers', label: 'Volunteers' },
   { href: '/community/relationships', label: 'Relationships' },
+  { href: '/memory', label: 'Memory' },
 ] as const;
 
 export function SectionNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Membership sections" className="-mx-1 flex gap-1 overflow-x-auto pb-1">
+    <nav aria-label="Workspace sections" className="-mx-1 flex gap-1 overflow-x-auto pb-1">
       {LINKS.map((link) => {
         const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
         return (

@@ -10,6 +10,17 @@ const commaSeparated = z
       .filter((entry) => entry.length > 0),
   );
 
+/**
+ * Environment values are always strings, so `z.coerce.boolean()` would treat
+ * the string "false" as truthy. Only the exact strings "true" and "false" are
+ * accepted, which makes a typo a startup failure rather than a silent default.
+ */
+const booleanString = (defaultValue: 'true' | 'false') =>
+  z
+    .enum(['true', 'false'])
+    .default(defaultValue)
+    .transform((value) => value === 'true');
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
@@ -73,9 +84,29 @@ export const envSchema = z.object({
   USER_LLM_MODEL: z.string().default(''),
   LLM_SUMMARY_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
 
-  // Member documents. Bytes are written to this directory under development;
-  // production points the same port at object storage.
-  DOCUMENT_STORAGE_DIR: z.string().default('/tmp/zion8-documents'),
+  // Member documents and memory artifacts. Bytes are written to this directory
+  // under development; production points the same port at object storage.
+  STORAGE_DIR: z.string().default('/tmp/zion8-storage'),
+
+  // Integration events. The transactional outbox is always written; the relay
+  // that drains it publishes either to the log (development default) or to a
+  // webhook endpoint when one is configured.
+  OUTBOX_RELAY_ENABLED: booleanString('true'),
+  OUTBOX_POLL_INTERVAL_MS: z.coerce.number().int().min(250).default(2000),
+  OUTBOX_BATCH_SIZE: z.coerce.number().int().min(1).max(500).default(50),
+  EVENT_WEBHOOK_URL: z.string().default(''),
+
+  // Memory processing. Jobs are claimed with SKIP LOCKED by a poller. The worker
+  // can be disabled in tests so background timers never race assertions.
+  MEMORY_WORKER_ENABLED: booleanString('true'),
+  MEMORY_WORKER_INTERVAL_MS: z.coerce.number().int().min(250).default(5000),
+  MEMORY_WORKER_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(10),
+
+  // Optional memory providers. An empty endpoint means the capability is not
+  // configured, and jobs that require it are BLOCKED rather than silently
+  // skipped.
+  MEMORY_OCR_ENDPOINT: z.string().default(''),
+  MEMORY_STT_ENDPOINT: z.string().default(''),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
@@ -83,7 +114,12 @@ export const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const result = envSchema.safeParse(source);
+  // A test runner is always a test environment, even when the checked-in `.env`
+  // says `development`. This keeps background pollers (outbox relay, memory
+  // worker) from racing assertions or outliving the test database connection;
+  // tests that need them drive the drain/runOnce methods directly.
+  const input = source.VITEST ? { ...source, NODE_ENV: 'test' as const } : source;
+  const result = envSchema.safeParse(input);
   if (!result.success) {
     const detail = result.error.issues
       .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)

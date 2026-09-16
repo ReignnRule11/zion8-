@@ -22,6 +22,10 @@ export class AppConfigService {
     return this.env.NODE_ENV === 'production';
   }
 
+  get isTest(): boolean {
+    return this.env.NODE_ENV === 'test';
+  }
+
   get port(): number {
     return this.env.PORT;
   }
@@ -150,8 +154,46 @@ export class AppConfigService {
     };
   }
 
-  get documentStorageDir(): string {
-    return this.env.DOCUMENT_STORAGE_DIR;
+  get storageDir(): string {
+    return this.env.STORAGE_DIR;
+  }
+
+  get outbox(): {
+    relayEnabled: boolean;
+    pollIntervalMs: number;
+    batchSize: number;
+    webhookUrl: string;
+  } {
+    return {
+      relayEnabled: this.env.OUTBOX_RELAY_ENABLED && !this.isTest,
+      pollIntervalMs: this.env.OUTBOX_POLL_INTERVAL_MS,
+      batchSize: this.env.OUTBOX_BATCH_SIZE,
+      webhookUrl: this.env.EVENT_WEBHOOK_URL,
+    };
+  }
+
+  get memoryWorker(): {
+    enabled: boolean;
+    intervalMs: number;
+    batchSize: number;
+  } {
+    return {
+      enabled: this.env.MEMORY_WORKER_ENABLED && !this.isTest,
+      intervalMs: this.env.MEMORY_WORKER_INTERVAL_MS,
+      batchSize: this.env.MEMORY_WORKER_BATCH_SIZE,
+    };
+  }
+
+  /**
+   * Whether an optional memory capability is configured. A missing endpoint is
+   * an explicit "not available" signal: jobs that need it become BLOCKED and
+   * visible to an administrator instead of being reported as successful.
+   */
+  get memoryCapabilities(): { ocr: boolean; transcription: boolean } {
+    return {
+      ocr: this.env.MEMORY_OCR_ENDPOINT.length > 0,
+      transcription: this.env.MEMORY_STT_ENDPOINT.length > 0,
+    };
   }
 
   get notifications(): {
