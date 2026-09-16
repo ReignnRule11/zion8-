@@ -60,6 +60,7 @@ modules with genuinely different scaling and availability profiles.
 | --- | --- | --- |
 | `auth` | Identity, credentials, sessions, refresh rotation, RBAC | Implemented |
 | `tenancy` | Tenant lifecycle, memberships, tenant context resolution | Implemented |
+| `onboarding` | Church setup journey, workspace profile, invitations, subscription, branding, member import | Implemented |
 | `membership` | People, households, pastoral records | Planned |
 | `attendance` | Services, check-in, attendance history | Planned |
 | `events` | Calendar, registration, facilities | Planned |
@@ -121,8 +122,10 @@ which directly serves the "preserve church history" goal.
 - **Defense in depth**: even a bug in a guard cannot cross tenant boundaries, because the
   database refuses the query.
 
-See `docs/architecture/AUTHENTICATION.md` for the full authentication model and
-`docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail.
+See `docs/architecture/AUTHENTICATION.md` for the full authentication model,
+`docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail, and
+`docs/architecture/CHURCH_ONBOARDING.md` for the onboarding journey that carries a new church from
+registration to a working workspace.
 
 ## Observability
 

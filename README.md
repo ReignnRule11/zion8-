@@ -53,7 +53,8 @@ that is structured for later extraction into microservices.
 
 See `docs/architecture/ARCHITECTURE.md` for the detailed design,
 `docs/architecture/MULTI_TENANCY.md` for the isolation model,
-`docs/architecture/AUTHENTICATION.md` for the enterprise authentication model, and
+`docs/architecture/AUTHENTICATION.md` for the enterprise authentication model,
+`docs/architecture/CHURCH_ONBOARDING.md` for the church onboarding journey, and
 `docs/architecture/REPOSITORY_STRUCTURE.md` for how the repository is organized, worked in, and
 scaled.
 
@@ -152,3 +153,11 @@ docker compose up -d
 Phase 0 foundation is in place: the identity and tenancy bounded contexts are implemented with
 Row-Level Security enforcement, refresh-token rotation with reuse detection, and end-to-end
 tests covering cross-tenant isolation.
+
+The church onboarding journey is implemented end to end: a new church registers, verifies its
+email, is provisioned automatically, and then completes workspace creation, administrator
+invitations, subscription selection, brand customization, and first member import from the web
+wizard. The journey is a projection of persisted facts, so it is resumable, retryable, and
+skippable without losing its place.
+
+A Flutter client ships the enterprise authentication flows against the same versioned API.
