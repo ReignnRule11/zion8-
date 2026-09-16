@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ChallengePurpose, IdentityProvider, MembershipStatus, UserStatus } from '@prisma/client';
 import {
   Role,
@@ -15,6 +15,7 @@ import { AppLogger } from '../../common/logger/app-logger.service';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { AuditService } from '../audit/audit.service';
+import { OnboardingService } from '../onboarding/onboarding.service';
 import { TenantService } from '../tenancy/tenant.service';
 import { AuthMailerService } from './auth-mailer.service';
 import { IdentityService, type LoginUser } from './identity.service';
@@ -54,6 +55,8 @@ export class AuthService {
     private readonly tenants: TenantService,
     private readonly audit: AuditService,
     private readonly redis: RedisService,
+    @Inject(forwardRef(() => OnboardingService))
+    private readonly onboarding: OnboardingService,
     private readonly logger: AppLogger,
   ) {}
 
@@ -163,6 +166,10 @@ export class AuthService {
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
     });
+
+    // Materialise the onboarding journey immediately so a freshly registered
+    // owner lands on a journey that already reflects their registration.
+    await this.onboarding.reconcileForUser(userId);
 
     return this.sessionFor(user, {
       tenantSlug: input.church.slug,
@@ -478,6 +485,10 @@ export class AuthService {
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
     });
+
+    // A verified email is a fact the onboarding journey projects; reconcile so
+    // the email-verification step completes and provisioning can proceed.
+    await this.onboarding.reconcileForUser(challenge.userId);
   }
 
   async requestPhoneVerification(userId: string, phone: string, meta: RequestMetadata): Promise<void> {

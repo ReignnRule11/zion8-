@@ -17,5 +17,5 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ['/workspace/:path*'],
+  matcher: ['/workspace/:path*', '/onboarding/:path*'],
 };

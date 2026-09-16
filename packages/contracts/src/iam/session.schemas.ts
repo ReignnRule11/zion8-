@@ -34,6 +34,7 @@ export const AuthenticationMethod = {
   TOTP: 'TOTP',
   RECOVERY_CODE: 'RECOVERY_CODE',
   REFRESH: 'REFRESH',
+  INVITATION: 'INVITATION',
 } as const;
 
 export type AuthenticationMethod = (typeof AuthenticationMethod)[keyof typeof AuthenticationMethod];

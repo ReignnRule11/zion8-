@@ -12,6 +12,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AuthorizationGuard } from './modules/auth/guards/authorization.guard';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { HealthModule } from './modules/health/health.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { TenancyModule } from './modules/tenancy/tenancy.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { TenancyModule } from './modules/tenancy/tenancy.module';
     AuditModule,
     TenancyModule,
     AuthModule,
+    OnboardingModule,
     HealthModule,
   ],
   providers: [

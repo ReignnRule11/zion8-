@@ -1,21 +1,58 @@
 import {
   apiErrorSchema,
+  brandThemeResponseSchema,
+  churchProfileResponseSchema,
+  invitationListResponseSchema,
+  invitationPreviewSchema,
+  invitationSummarySchema,
   loginResultSchema,
   meResponseSchema,
+  memberImportJobSchema,
+  memberImportListResponseSchema,
+  memberImportPreviewResponseSchema,
+  onboardingStateSchema,
+  onboardingSummarySchema,
+  planCatalogResponseSchema,
   sessionSchema,
   sessionListResponseSchema,
+  subscriptionSummarySchema,
+  type AcceptInvitationRequest,
+  type BrandThemeRequest,
+  type BrandThemeResponse,
+  type ChurchProfileRequest,
+  type ChurchProfileResponse,
+  type CompleteOnboardingRequest,
+  type DeclineInvitationRequest,
+  type InvitationListResponse,
+  type InvitationPreview,
+  type InvitationSummary,
+  type InviteAdministratorsRequest,
   type LoginRequest,
   type LoginResult,
   type LogoutRequest,
   type MeResponse,
+  type MemberImportCommitRequest,
+  type MemberImportJob,
+  type MemberImportListResponse,
+  type MemberImportPreviewRequest,
+  type MemberImportPreviewResponse,
+  type OnboardingState,
+  type OnboardingSummary,
+  type PlanCatalogResponse,
   type RefreshRequest,
   type RegisterChurchRequest,
+  type SelectSubscriptionRequest,
   type Session,
   type SessionListResponse,
+  type SubscriptionSummary,
 } from '@zion8/contracts';
-import type { ZodSchema } from 'zod';
 import { z } from 'zod';
 import { apiBaseUrl } from './env';
+
+/** Minimal structural view of a zod schema: parses unknown input into T. */
+interface Parser<T> {
+  parse(value: unknown): T;
+}
 
 export class ApiRequestError extends Error {
   constructor(
@@ -40,9 +77,9 @@ export class ApiRequestError extends Error {
 }
 
 interface RequestOptions<T> {
-  method: 'GET' | 'POST' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   path: string;
-  schema: ZodSchema<T>;
+  schema: Parser<T>;
   body?: unknown;
   token?: string;
   cache?: RequestCache;
@@ -207,6 +244,228 @@ export const api = {
       method: 'GET',
       path: '/auth/me',
       schema: meResponseSchema,
+      token,
+    });
+  },
+
+  getOnboarding(token: string): Promise<OnboardingState> {
+    return apiRequest({
+      method: 'GET',
+      path: '/onboarding',
+      schema: onboardingStateSchema,
+      token,
+    });
+  },
+
+  getOnboardingSummary(token: string): Promise<OnboardingSummary> {
+    return apiRequest({
+      method: 'GET',
+      path: '/onboarding/summary',
+      schema: onboardingSummarySchema,
+      token,
+    });
+  },
+
+  completeOnboarding(token: string, input: CompleteOnboardingRequest): Promise<OnboardingState> {
+    return apiRequest({
+      method: 'POST',
+      path: '/onboarding/complete',
+      schema: onboardingStateSchema,
+      body: input,
+      token,
+    });
+  },
+
+  skipOnboardingStep(token: string, step: string): Promise<OnboardingState> {
+    return apiRequest({
+      method: 'POST',
+      path: `/onboarding/steps/${step}/skip`,
+      schema: onboardingStateSchema,
+      token,
+    });
+  },
+
+  retryOnboardingStep(token: string, step: string): Promise<OnboardingState> {
+    return apiRequest({
+      method: 'POST',
+      path: `/onboarding/steps/${step}/retry`,
+      schema: onboardingStateSchema,
+      token,
+    });
+  },
+
+  getWorkspace(token: string): Promise<ChurchProfileResponse | null> {
+    return apiRequest({
+      method: 'GET',
+      path: '/onboarding/workspace',
+      schema: churchProfileResponseSchema.nullable(),
+      token,
+    });
+  },
+
+  saveWorkspace(token: string, input: ChurchProfileRequest): Promise<ChurchProfileResponse> {
+    return apiRequest({
+      method: 'PUT',
+      path: '/onboarding/workspace',
+      schema: churchProfileResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  getBranding(token: string): Promise<BrandThemeResponse | null> {
+    return apiRequest({
+      method: 'GET',
+      path: '/onboarding/branding',
+      schema: brandThemeResponseSchema.nullable(),
+      token,
+    });
+  },
+
+  saveBranding(token: string, input: BrandThemeRequest): Promise<BrandThemeResponse> {
+    return apiRequest({
+      method: 'PUT',
+      path: '/onboarding/branding',
+      schema: brandThemeResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  getPlanCatalog(token: string): Promise<PlanCatalogResponse> {
+    return apiRequest({
+      method: 'GET',
+      path: '/onboarding/subscription/catalog',
+      schema: planCatalogResponseSchema,
+      token,
+    });
+  },
+
+  getSubscription(token: string): Promise<SubscriptionSummary | null> {
+    return apiRequest({
+      method: 'GET',
+      path: '/onboarding/subscription',
+      schema: subscriptionSummarySchema.nullable(),
+      token,
+    });
+  },
+
+  selectSubscription(
+    token: string,
+    input: SelectSubscriptionRequest,
+  ): Promise<SubscriptionSummary> {
+    return apiRequest({
+      method: 'PUT',
+      path: '/onboarding/subscription',
+      schema: subscriptionSummarySchema,
+      body: input,
+      token,
+    });
+  },
+
+  listInvitations(token: string): Promise<InvitationListResponse> {
+    return apiRequest({
+      method: 'GET',
+      path: '/onboarding/invitations',
+      schema: invitationListResponseSchema,
+      token,
+    });
+  },
+
+  inviteAdministrators(
+    token: string,
+    input: InviteAdministratorsRequest,
+  ): Promise<InvitationListResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: '/onboarding/invitations',
+      schema: invitationListResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  resendInvitation(token: string, invitationId: string): Promise<InvitationSummary> {
+    return apiRequest({
+      method: 'POST',
+      path: `/onboarding/invitations/${invitationId}/resend`,
+      schema: invitationSummarySchema,
+      token,
+    });
+  },
+
+  revokeInvitation(token: string, invitationId: string): Promise<InvitationSummary> {
+    return apiRequest({
+      method: 'DELETE',
+      path: `/onboarding/invitations/${invitationId}`,
+      schema: invitationSummarySchema,
+      token,
+    });
+  },
+
+  previewInvitation(token: string): Promise<InvitationPreview> {
+    return apiRequest({
+      method: 'GET',
+      path: `/onboarding/invitations/preview?token=${encodeURIComponent(token)}`,
+      schema: invitationPreviewSchema,
+    });
+  },
+
+  acceptInvitation(input: AcceptInvitationRequest): Promise<Session> {
+    return apiRequest({
+      method: 'POST',
+      path: '/onboarding/invitations/accept',
+      schema: sessionSchema,
+      body: input,
+    });
+  },
+
+  declineInvitation(input: DeclineInvitationRequest): Promise<void> {
+    return apiRequest({
+      method: 'POST',
+      path: '/onboarding/invitations/decline',
+      schema: voidSchema,
+      body: input,
+    });
+  },
+
+  listMemberImports(token: string): Promise<MemberImportListResponse> {
+    return apiRequest({
+      method: 'GET',
+      path: '/onboarding/member-imports',
+      schema: memberImportListResponseSchema,
+      token,
+    });
+  },
+
+  getMemberImport(token: string, jobId: string): Promise<MemberImportJob> {
+    return apiRequest({
+      method: 'GET',
+      path: `/onboarding/member-imports/${jobId}`,
+      schema: memberImportJobSchema,
+      token,
+    });
+  },
+
+  previewMemberImport(
+    token: string,
+    input: MemberImportPreviewRequest,
+  ): Promise<MemberImportPreviewResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: '/onboarding/member-imports/preview',
+      schema: memberImportPreviewResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  commitMemberImport(token: string, input: MemberImportCommitRequest): Promise<MemberImportJob> {
+    return apiRequest({
+      method: 'POST',
+      path: '/onboarding/member-imports/commit',
+      schema: memberImportJobSchema,
+      body: input,
       token,
     });
   },

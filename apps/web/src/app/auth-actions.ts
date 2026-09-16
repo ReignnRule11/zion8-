@@ -161,7 +161,7 @@ export async function signUpAction(
     return toState(error);
   }
 
-  redirect('/workspace');
+  redirect('/onboarding');
 }
 
 export async function signOutAction(): Promise<void> {

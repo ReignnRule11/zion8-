@@ -74,6 +74,10 @@ export class AppConfigService {
     return this.env.MAGIC_LINK_TTL_SECONDS;
   }
 
+  get invitationTtlSeconds(): number {
+    return this.env.INVITATION_TTL_SECONDS;
+  }
+
   get mfaChallengeTtlSeconds(): number {
     return this.env.MFA_CHALLENGE_TTL_SECONDS;
   }

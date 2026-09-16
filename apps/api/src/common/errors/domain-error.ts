@@ -24,6 +24,17 @@ const DEFAULT_STATUS: Partial<Record<ErrorCode, number>> = {
   [ErrorCode.OAUTH_FAILED]: 400,
   [ErrorCode.OAUTH_PROVIDER_UNAVAILABLE]: 503,
   [ErrorCode.CONTACT_NOT_VERIFIED]: 403,
+  [ErrorCode.ONBOARDING_STATUS]: 409,
+  [ErrorCode.ONBOARDING_STEP_OUT_OF_ORDER]: 409,
+  [ErrorCode.ONBOARDING_INCOMPLETE]: 409,
+  [ErrorCode.ONBOARDING_ALREADY_COMPLETED]: 409,
+  [ErrorCode.INVITATION_NOT_FOUND]: 404,
+  [ErrorCode.INVITATION_EXPIRED]: 410,
+  [ErrorCode.INVITATION_ALREADY_ACCEPTED]: 409,
+  [ErrorCode.INVITATION_ALREADY_EXISTS]: 409,
+  [ErrorCode.SUBSCRIPTION_PLAN_UNAVAILABLE]: 400,
+  [ErrorCode.MEMBER_IMPORT_INVALID]: 400,
+  [ErrorCode.MEMBER_IMPORT_NOT_READY]: 409,
   [ErrorCode.RESOURCE_NOT_FOUND]: 404,
   [ErrorCode.RESOURCE_CONFLICT]: 409,
   [ErrorCode.RATE_LIMITED]: 429,
@@ -136,6 +147,71 @@ export class DomainError extends Error {
 
   static contactNotVerified(message = 'Please verify your contact details first'): DomainError {
     return new DomainError(ErrorCode.CONTACT_NOT_VERIFIED, message);
+  }
+
+  static onboardingStepOutOfOrder(
+    missingSteps: readonly string[],
+    message = 'Complete the earlier onboarding steps first',
+  ): DomainError {
+    return new DomainError(ErrorCode.ONBOARDING_STEP_OUT_OF_ORDER, message, [
+      {
+        path: 'step',
+        code: ErrorCode.ONBOARDING_STEP_OUT_OF_ORDER,
+        message: `Required steps are incomplete: ${missingSteps.join(', ')}`,
+      },
+    ]);
+  }
+
+  static onboardingIncomplete(
+    missingSteps: readonly string[],
+    message = 'The workspace cannot be finalized until the required steps are complete',
+  ): DomainError {
+    return new DomainError(ErrorCode.ONBOARDING_INCOMPLETE, message, [
+      {
+        path: 'step',
+        code: ErrorCode.ONBOARDING_INCOMPLETE,
+        message: `Required steps are incomplete: ${missingSteps.join(', ')}`,
+      },
+    ]);
+  }
+
+  static onboardingAlreadyCompleted(
+    message = 'Onboarding is already complete',
+  ): DomainError {
+    return new DomainError(ErrorCode.ONBOARDING_ALREADY_COMPLETED, message);
+  }
+
+  static invitationNotFound(message = 'This invitation could not be found'): DomainError {
+    return new DomainError(ErrorCode.INVITATION_NOT_FOUND, message);
+  }
+
+  static invitationExpired(message = 'This invitation has expired'): DomainError {
+    return new DomainError(ErrorCode.INVITATION_EXPIRED, message);
+  }
+
+  static invitationAlreadyAccepted(
+    message = 'This invitation has already been accepted',
+  ): DomainError {
+    return new DomainError(ErrorCode.INVITATION_ALREADY_ACCEPTED, message);
+  }
+
+  static invitationAlreadyExists(message = 'That person has already been invited'): DomainError {
+    return new DomainError(ErrorCode.INVITATION_ALREADY_EXISTS, message);
+  }
+
+  static subscriptionPlanUnavailable(message = 'That subscription plan is not available'): DomainError {
+    return new DomainError(ErrorCode.SUBSCRIPTION_PLAN_UNAVAILABLE, message);
+  }
+
+  static memberImportInvalid(
+    message = 'The import file could not be read',
+    details?: FieldIssue[],
+  ): DomainError {
+    return new DomainError(ErrorCode.MEMBER_IMPORT_INVALID, message, details);
+  }
+
+  static memberImportNotReady(message = 'The import is not ready to be applied'): DomainError {
+    return new DomainError(ErrorCode.MEMBER_IMPORT_NOT_READY, message);
   }
 
   static notFound(message = 'Resource not found'): DomainError {

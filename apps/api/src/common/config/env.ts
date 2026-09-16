@@ -40,6 +40,7 @@ export const envSchema = z.object({
 
   VERIFICATION_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   MAGIC_LINK_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  INVITATION_TTL_SECONDS: z.coerce.number().int().positive().default(604800),
   MFA_CHALLENGE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
   TOTP_ISSUER: z.string().min(1).max(64).default('Zion8'),
   WEBAUTHN_RP_ID: z.string().min(1).max(253).default('localhost'),
