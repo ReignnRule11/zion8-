@@ -17,6 +17,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuthorizationGuard } from './modules/auth/guards/authorization.guard';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { AiModule } from './modules/ai/ai.module';
 import { HealthModule } from './modules/health/health.module';
 import { MembershipModule } from './modules/membership/membership.module';
 import { MemoryModule } from './modules/memory/memory.module';
@@ -43,6 +44,7 @@ import { TenancyModule } from './modules/tenancy/tenancy.module';
     OnboardingModule,
     MembershipModule,
     MemoryModule,
+    AiModule,
     HealthModule,
   ],
   providers: [
