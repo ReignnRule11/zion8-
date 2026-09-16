@@ -122,7 +122,7 @@ zion8/
 │
 ├── docs/
 │   ├── adr/                           # Architecture Decision Records, numbered
-│   ├── architecture/                  # this document, ARCHITECTURE.md, MULTI_TENANCY.md
+│   ├── architecture/                  # this document, ARCHITECTURE.md, MULTI_TENANCY.md, MEMBERSHIP.md
 │   ├── standards/                     # coding, testing, review, security standards
 │   ├── runbooks/                      # incident and operational procedures
 │   └── onboarding/                    # day-1 developer guide

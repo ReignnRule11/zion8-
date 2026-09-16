@@ -17,5 +17,11 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ['/workspace/:path*', '/onboarding/:path*'],
+  matcher: [
+    '/workspace/:path*',
+    '/onboarding/:path*',
+    '/people/:path*',
+    '/people',
+    '/community/:path*',
+  ],
 };

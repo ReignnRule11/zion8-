@@ -1,6 +1,7 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
+import { requestFromContext } from '../../../common/security/context-request';
 import { bindTenantToContext, bindUserToContext } from '../../../common/context/request-context';
 import { DomainError } from '../../../common/errors/domain-error';
 import { IS_PUBLIC_KEY, OPTIONAL_AUTH_KEY } from '../../../common/security/decorators';
@@ -22,7 +23,10 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const optional = this.reflector.getAllAndOverride<boolean>(OPTIONAL_AUTH_KEY, targets) ?? false;
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = requestFromContext(context);
+    if (!request) {
+      throw DomainError.unauthenticated();
+    }
     const token = this.tokens.extractBearerToken(request.header('authorization'));
     if (!token) {
       if (optional) return true;

@@ -35,6 +35,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   constructor(private readonly logger: AppLogger) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
+    // Only the HTTP surface writes an envelope here. GraphQL carries errors in
+    // the response body next to the data, so the original error is rethrown and
+    // normalized by the driver's `formatError` instead.
+    if (host.getType<'http' | 'graphql' | 'rpc' | 'ws'>() !== 'http') {
+      throw exception;
+    }
+
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
     const requestId = currentRequestId();

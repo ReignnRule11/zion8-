@@ -134,6 +134,26 @@ export class AppConfigService {
     return this.env.LOG_LEVEL;
   }
 
+  get llmSummary(): {
+    baseUrl: string;
+    apiKey: string;
+    model: string;
+    timeoutMs: number;
+    configured: boolean;
+  } {
+    return {
+      baseUrl: this.env.USER_LLM_BASE_URL,
+      apiKey: this.env.USER_LLM_API_KEY,
+      model: this.env.USER_LLM_MODEL,
+      timeoutMs: this.env.LLM_SUMMARY_TIMEOUT_MS,
+      configured: this.env.USER_LLM_BASE_URL.length > 0,
+    };
+  }
+
+  get documentStorageDir(): string {
+    return this.env.DOCUMENT_STORAGE_DIR;
+  }
+
   get notifications(): {
     emailFrom: string;
     resendApiKey: string;

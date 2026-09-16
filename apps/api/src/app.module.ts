@@ -1,6 +1,10 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ApolloDriver, type ApolloDriverConfig } from '@nestjs/apollo';
+import { GraphQLModule } from '@nestjs/graphql';
 import { AppConfigModule } from './common/config/app-config.module';
+import { AppConfigService } from './common/config/app-config.service';
+import { graphqlModuleOptions } from './common/graphql/graphql.config';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { RequestContextMiddleware } from './common/context/request-context.middleware';
@@ -12,11 +16,17 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AuthorizationGuard } from './modules/auth/guards/authorization.guard';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { HealthModule } from './modules/health/health.module';
+import { MembershipModule } from './modules/membership/membership.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { TenancyModule } from './modules/tenancy/tenancy.module';
 
 @Module({
   imports: [
+    GraphQLModule.forRootAsync<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      inject: [AppConfigService],
+      useFactory: (config: AppConfigService) => graphqlModuleOptions(config),
+    }),
     AppConfigModule,
     CryptoModule,
     LoggerModule,
@@ -26,6 +36,7 @@ import { TenancyModule } from './modules/tenancy/tenancy.module';
     TenancyModule,
     AuthModule,
     OnboardingModule,
+    MembershipModule,
     HealthModule,
   ],
   providers: [

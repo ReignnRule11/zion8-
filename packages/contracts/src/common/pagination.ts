@@ -1,37 +1,30 @@
 import { z } from 'zod';
 
+/**
+ * List endpoints share one pagination contract: a bounded page size and an
+ * offset. Offset pagination is deliberate here — church lists are sorted by a
+ * name or a date the administrator chose, not by an opaque cursor, and the
+ * volumes are small enough that skipping is cheap.
+ */
 export const paginationQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  sortBy: z.string().min(1).max(64).optional(),
-  sortDirection: z.enum(['asc', 'desc']).default('desc'),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 
-export const paginationMetaSchema = z.object({
-  page: z.number().int().min(1),
-  pageSize: z.number().int().min(1),
-  total: z.number().int().min(0),
-  totalPages: z.number().int().min(0),
-  hasNextPage: z.boolean(),
-  hasPreviousPage: z.boolean(),
-});
-
-export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
-
-export function buildPaginationMeta(page: number, pageSize: number, total: number): PaginationMeta {
-  const totalPages = pageSize > 0 ? Math.ceil(total / pageSize) : 0;
-  return {
-    page,
-    pageSize,
-    total,
-    totalPages,
-    hasNextPage: page < totalPages,
-    hasPreviousPage: page > 1 && total > 0,
-  };
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
-export function toSkipTake(query: PaginationQuery): { skip: number; take: number } {
-  return { skip: (query.page - 1) * query.pageSize, take: query.pageSize };
+export function paginatedSchema<T extends z.ZodTypeAny>(item: T) {
+  return z.object({
+    items: z.array(item),
+    total: z.number().int().min(0),
+    limit: z.number().int().positive(),
+    offset: z.number().int().min(0),
+  });
 }
