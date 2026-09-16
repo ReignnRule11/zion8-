@@ -28,6 +28,7 @@ function buildContext(request: Partial<Request>): ExecutionContext {
     (request as { header: () => undefined }).header = () => undefined;
   }
   return {
+    getType: () => 'http',
     getHandler: () => 'handler',
     getClass: () => 'controller',
     switchToHttp: () => ({ getRequest: () => request }),

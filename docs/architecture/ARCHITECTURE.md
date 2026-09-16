@@ -123,9 +123,10 @@ which directly serves the "preserve church history" goal.
   database refuses the query.
 
 See `docs/architecture/AUTHENTICATION.md` for the full authentication model,
-`docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail, and
+`docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail,
 `docs/architecture/CHURCH_ONBOARDING.md` for the onboarding journey that carries a new church from
-registration to a working workspace.
+registration to a working workspace, and `docs/architecture/MEMBERSHIP.md` for the membership domain
+that the workspace is built on.
 
 ## Observability
 

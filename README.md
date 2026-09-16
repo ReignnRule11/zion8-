@@ -54,7 +54,8 @@ that is structured for later extraction into microservices.
 See `docs/architecture/ARCHITECTURE.md` for the detailed design,
 `docs/architecture/MULTI_TENANCY.md` for the isolation model,
 `docs/architecture/AUTHENTICATION.md` for the enterprise authentication model,
-`docs/architecture/CHURCH_ONBOARDING.md` for the church onboarding journey, and
+`docs/architecture/CHURCH_ONBOARDING.md` for the church onboarding journey,
+`docs/architecture/MEMBERSHIP.md` for the membership domain, and
 `docs/architecture/REPOSITORY_STRUCTURE.md` for how the repository is organized, worked in, and
 scaled.
 

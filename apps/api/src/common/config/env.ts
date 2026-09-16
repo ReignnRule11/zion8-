@@ -65,6 +65,18 @@ export const envSchema = z.object({
   TWILIO_ACCOUNT_SID: z.string().default(''),
   TWILIO_AUTH_TOKEN: z.string().default(''),
 
+  // Member AI summaries. When no base URL is configured the deterministic
+  // rule-based provider is used, which needs no network access. These are
+  // project-owned variables: the workspace supplies its own provider key.
+  USER_LLM_BASE_URL: z.string().default(''),
+  USER_LLM_API_KEY: z.string().default(''),
+  USER_LLM_MODEL: z.string().default(''),
+  LLM_SUMMARY_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
+
+  // Member documents. Bytes are written to this directory under development;
+  // production points the same port at object storage.
+  DOCUMENT_STORAGE_DIR: z.string().default('/tmp/zion8-documents'),
+
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

@@ -16,4 +16,5 @@ export * from './onboarding/invitation.schemas';
 export * from './onboarding/subscription.schemas';
 export * from './onboarding/branding.schemas';
 export * from './onboarding/member-import.schemas';
+export * from './membership';
 export * from './health/health.schemas';

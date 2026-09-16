@@ -159,17 +159,33 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
-  memberships    Membership[]
-  refreshTokens  RefreshToken[]
-  auditLogs      AuditLog[]
-  sessions       AuthSession[]
-  challenges     VerificationChallenge[]
-  onboarding        TenantOnboarding?
-  churchProfile     ChurchProfile?
-  invitations       TenantInvitation[]
-  subscription      TenantSubscription?
-  brandTheme        BrandTheme?
-  memberImportJobs  MemberImportJob[]
+  memberships      Membership[]
+  refreshTokens    RefreshToken[]
+  auditLogs        AuditLog[]
+  sessions         AuthSession[]
+  challenges       VerificationChallenge[]
+  onboarding       TenantOnboarding?
+  churchProfile    ChurchProfile?
+  invitations      TenantInvitation[]
+  subscription     TenantSubscription?
+  brandTheme       BrandTheme?
+  memberImportJobs MemberImportJob[]
+
+  members              Member[]
+  families             Family[]
+  familyMembers        FamilyMember[]
+  memberRelationships  MemberRelationship[]
+  visitors             Visitor[]
+  visitorVisits        VisitorVisit[]
+  attendanceSessions   AttendanceSession[]
+  attendanceRecords    AttendanceRecord[]
+  departments          Department[]
+  departmentMembers    DepartmentMember[]
+  volunteerRoles       VolunteerRole[]
+  volunteerAssignments VolunteerAssignment[]
+  timelineEntries      MemberTimelineEntry[]
+  documents            MemberDocument[]
+  aiSummaries          MemberAiSummary[]
 
   @@map("tenants")
 }
@@ -179,33 +195,34 @@ model Tenant {
 /// how a user can actually authenticate. At least one contact is enforced by a
 /// database check constraint.
 model User {
-  id                String     @id @default(uuid()) @db.Uuid
-  email             String?    @unique @db.VarChar(320)
-  phone             String?    @unique @db.VarChar(32)
-  firstName         String     @map("first_name") @db.VarChar(120)
-  lastName          String     @map("last_name") @db.VarChar(120)
-  status            UserStatus @default(ACTIVE)
-  isPlatformAdmin   Boolean    @default(false) @map("is_platform_admin")
-  emailVerifiedAt   DateTime?  @map("email_verified_at")
-  phoneVerifiedAt   DateTime?  @map("phone_verified_at")
-  lastLoginAt       DateTime?  @map("last_login_at")
-  createdAt         DateTime   @default(now()) @map("created_at")
-  updatedAt         DateTime   @updatedAt @map("updated_at")
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String?    @unique @db.VarChar(320)
+  phone           String?    @unique @db.VarChar(32)
+  firstName       String     @map("first_name") @db.VarChar(120)
+  lastName        String     @map("last_name") @db.VarChar(120)
+  status          UserStatus @default(ACTIVE)
+  isPlatformAdmin Boolean    @default(false) @map("is_platform_admin")
+  emailVerifiedAt DateTime?  @map("email_verified_at")
+  phoneVerifiedAt DateTime?  @map("phone_verified_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
 
-  memberships      Membership[]
-  refreshTokens    RefreshToken[]
-  auditLogs        AuditLog[]
-  identities       UserIdentity[]
-  password         PasswordCredential?
-  sessions         AuthSession[]
-  challenges       VerificationChallenge[]
-  mfaFactors       MfaFactor[]
-  webauthnCredentials WebAuthnCredential[]
-  recoveryCodes    MfaRecoveryCode[]
-  invitationsSent     TenantInvitation[]   @relation("InvitationsSent")
-  invitationsAccepted TenantInvitation[]   @relation("InvitationsAccepted")
-  subscriptionsSelected TenantSubscription[] @relation("SubscriptionsSelected")
-  memberImportsCreated  MemberImportJob[]  @relation("MemberImportsCreated")
+  memberships           Membership[]
+  refreshTokens         RefreshToken[]
+  auditLogs             AuditLog[]
+  identities            UserIdentity[]
+  password              PasswordCredential?
+  sessions              AuthSession[]
+  challenges            VerificationChallenge[]
+  mfaFactors            MfaFactor[]
+  webauthnCredentials   WebAuthnCredential[]
+  recoveryCodes         MfaRecoveryCode[]
+  invitationsSent       TenantInvitation[]      @relation("InvitationsSent")
+  invitationsAccepted   TenantInvitation[]      @relation("InvitationsAccepted")
+  subscriptionsSelected TenantSubscription[]    @relation("SubscriptionsSelected")
+  memberImportsCreated  MemberImportJob[]       @relation("MemberImportsCreated")
+  membersCreated        Member[]                @relation("MembersCreated")
 
   @@map("users")
 }
@@ -272,21 +289,21 @@ model PasswordCredential {
 /// A login session, distinct from the refresh tokens that rotate inside it.
 /// This is what a user sees and revokes in "your devices".
 model AuthSession {
-  id                   String         @id @default(uuid()) @db.Uuid
-  userId               String         @map("user_id") @db.Uuid
-  tenantId             String?        @map("tenant_id") @db.Uuid
-  status               SessionStatus  @default(ACTIVE)
-  assuranceLevel       AssuranceLevel @default(AAL1) @map("assurance_level")
-  deviceName           String?        @map("device_name") @db.VarChar(120)
-  userAgent            String?        @map("user_agent") @db.VarChar(512)
-  ipAddress            String?        @map("ip_address") @db.VarChar(64)
-  mfaSatisfiedAt       DateTime?      @map("mfa_satisfied_at")
-  createdAt            DateTime       @default(now()) @map("created_at")
-  lastSeenAt           DateTime       @default(now()) @map("last_seen_at")
-  lastAuthenticatedAt  DateTime       @default(now()) @map("last_authenticated_at")
-  expiresAt            DateTime       @map("expires_at")
-  revokedAt            DateTime?      @map("revoked_at")
-  revokedReason        String?        @map("revoked_reason") @db.VarChar(120)
+  id                  String         @id @default(uuid()) @db.Uuid
+  userId              String         @map("user_id") @db.Uuid
+  tenantId            String?        @map("tenant_id") @db.Uuid
+  status              SessionStatus  @default(ACTIVE)
+  assuranceLevel      AssuranceLevel @default(AAL1) @map("assurance_level")
+  deviceName          String?        @map("device_name") @db.VarChar(120)
+  userAgent           String?        @map("user_agent") @db.VarChar(512)
+  ipAddress           String?        @map("ip_address") @db.VarChar(64)
+  mfaSatisfiedAt      DateTime?      @map("mfa_satisfied_at")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  lastSeenAt          DateTime       @default(now()) @map("last_seen_at")
+  lastAuthenticatedAt DateTime       @default(now()) @map("last_authenticated_at")
+  expiresAt           DateTime       @map("expires_at")
+  revokedAt           DateTime?      @map("revoked_at")
+  revokedReason       String?        @map("revoked_reason") @db.VarChar(120)
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant        Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -366,8 +383,8 @@ model MfaFactor {
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
-  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  webauthn   WebAuthnCredential?
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  webauthn WebAuthnCredential?
 
   @@index([userId, status])
   @@map("mfa_factors")
@@ -586,6 +603,618 @@ model BrandTheme {
 /// Persisted two-phase member import. `rows` holds the validated payload and
 /// `resumeIndex` lets a partially applied import continue where it stopped
 /// instead of re-importing or losing the remaining rows.
+// --- Membership -------------------------------------------------------------
+//
+// Enums for the membership bounded context. The domain keeps the church's own
+// pastoral record (Member) separate from the global sign-in identity (User);
+// the two are linked late, if ever.
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  TRANSFERRED
+  DECEASED
+  ARCHIVED
+}
+
+enum MemberGender {
+  MALE
+  FEMALE
+  OTHER
+  UNDISCLOSED
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  WIDOWED
+  DIVORCED
+  SEPARATED
+  UNDISCLOSED
+}
+
+enum FamilyRole {
+  HEAD
+  SPOUSE
+  CHILD
+  PARENT
+  SIBLING
+  RELATIVE
+  GUARDIAN
+  WARD
+  OTHER
+}
+
+enum FamilyStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum RelationshipType {
+  SPOUSE
+  PARENT
+  CHILD
+  SIBLING
+  GUARDIAN
+  WARD
+  GRANDPARENT
+  GRANDCHILD
+  RELATIVE
+  MENTOR
+  MENTEE
+  FRIEND
+  EMERGENCY_CONTACT
+  OTHER
+}
+
+enum VisitorStatus {
+  NEW
+  FOLLOW_UP
+  RETURNING
+  CONNECTED
+  CONVERTED
+  DORMANT
+  ARCHIVED
+}
+
+enum VisitorSource {
+  INVITED_BY_MEMBER
+  WALK_IN
+  EVENT
+  WEBSITE
+  OUTREACH
+  SOCIAL_MEDIA
+  REFERRAL
+  OTHER
+}
+
+enum AttendanceSessionKind {
+  SERVICE
+  EVENT
+  CLASS
+  GROUP
+  OUTREACH
+  OTHER
+}
+
+enum AttendanceSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum AttendanceMethod {
+  MANUAL
+  SELF
+  QR
+  KIOSK
+  IMPORT
+}
+
+enum DepartmentKind {
+  MINISTRY
+  CHOIR
+  USHERING
+  MEDIA
+  CHILDREN
+  YOUTH
+  ADULT
+  OUTREACH
+  PRAYER
+  HOSPITALITY
+  ADMINISTRATION
+  OTHER
+}
+
+enum DepartmentMemberRole {
+  LEADER
+  ASSISTANT_LEADER
+  COORDINATOR
+  MEMBER
+}
+
+enum DepartmentMemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum VolunteerCommitment {
+  ONE_OFF
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  SEASONAL
+  ON_CALL
+}
+
+enum VolunteerAssignmentStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum TimelineEventType {
+  MEMBERSHIP
+  ATTENDANCE
+  RELATIONSHIP
+  FAMILY
+  DEPARTMENT
+  VOLUNTEER
+  DOCUMENT
+  VISITOR
+  CONVERSION
+  NOTE
+  SUMMARY
+  SYSTEM
+}
+
+enum DocumentCategory {
+  IDENTITY
+  CERTIFICATE
+  CONSENT
+  MEDICAL
+  FINANCIAL
+  PASTORAL
+  LEGAL
+  MEDIA
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  AVAILABLE
+  ARCHIVED
+  FAILED
+}
+
+enum SummaryStatus {
+  FRESH
+  STALE
+  GENERATING
+  FAILED
+}
+
+enum SummaryProviderKind {
+  DETERMINISTIC
+  LLM
+}
+
+/// The church's pastoral record of a person. Deliberately independent of the
+/// global `User` identity: most congregants never sign in, and the church must
+/// be able to keep a record for someone who has no account. `userId` links the
+/// record to an account when one exists, without merging the two.
+model Member {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @map("tenant_id") @db.Uuid
+  userId          String?       @map("user_id") @db.Uuid
+  firstName       String        @map("first_name") @db.VarChar(120)
+  middleName      String?       @map("middle_name") @db.VarChar(120)
+  lastName        String        @map("last_name") @db.VarChar(120)
+  preferredName   String?       @map("preferred_name") @db.VarChar(120)
+  status          MemberStatus  @default(ACTIVE)
+  gender          MemberGender  @default(UNDISCLOSED)
+  maritalStatus   MaritalStatus @default(UNDISCLOSED) @map("marital_status")
+  dateOfBirth     DateTime?     @map("date_of_birth") @db.Date
+  email           String?       @db.VarChar(320)
+  phone           String?       @db.VarChar(32)
+  photoUrl        String?       @map("photo_url") @db.VarChar(2048)
+  addressLine1    String?       @map("address_line1") @db.VarChar(180)
+  addressLine2    String?       @map("address_line2") @db.VarChar(180)
+  city            String?       @db.VarChar(120)
+  region          String?       @db.VarChar(120)
+  postalCode      String?       @map("postal_code") @db.VarChar(32)
+  countryCode     String?       @map("country_code") @db.VarChar(2)
+  joinedAt        DateTime?     @map("joined_at") @db.Date
+  baptizedAt      DateTime?     @map("baptized_at") @db.Date
+  notes           String?       @db.Text
+  tags            String[]      @default([])
+  customFields    Json          @default("{}") @map("custom_fields") @db.JsonB
+  archivedAt      DateTime?     @map("archived_at")
+  createdByUserId String?       @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy            User?                 @relation("MembersCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  families             FamilyMember[]
+  relationshipsFrom    MemberRelationship[]  @relation("RelationshipFrom")
+  relationshipsTo      MemberRelationship[]  @relation("RelationshipTo")
+  departmentMembers    DepartmentMember[]
+  volunteerAssignments VolunteerAssignment[]
+  attendanceRecords    AttendanceRecord[]
+  timelineEntries      MemberTimelineEntry[]
+  documents            MemberDocument[]
+  summary              MemberAiSummary?
+  visitorsReferred     Visitor[]             @relation("VisitorReferredBy")
+
+  @@unique([tenantId, email])
+  @@index([tenantId, status])
+  @@index([tenantId, lastName, firstName])
+  @@index([userId])
+  @@map("members")
+}
+
+/// A household: the unit the church visits, cares for, and records against.
+model Family {
+  id           String       @id @default(uuid()) @db.Uuid
+  tenantId     String       @map("tenant_id") @db.Uuid
+  name         String       @db.VarChar(120)
+  status       FamilyStatus @default(ACTIVE)
+  addressLine1 String?      @map("address_line1") @db.VarChar(180)
+  addressLine2 String?      @map("address_line2") @db.VarChar(180)
+  city         String?      @db.VarChar(120)
+  region       String?      @db.VarChar(120)
+  postalCode   String?      @map("postal_code") @db.VarChar(32)
+  countryCode  String?      @map("country_code") @db.VarChar(2)
+  homePhone    String?      @map("home_phone") @db.VarChar(32)
+  notes        String?      @db.Text
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  members FamilyMember[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, name])
+  @@map("families")
+}
+
+model FamilyMember {
+  id        String     @id @default(uuid()) @db.Uuid
+  tenantId  String     @map("tenant_id") @db.Uuid
+  familyId  String     @map("family_id") @db.Uuid
+  memberId  String     @map("member_id") @db.Uuid
+  role      FamilyRole @default(OTHER)
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, memberId])
+  @@index([tenantId])
+  @@index([memberId])
+  @@map("family_members")
+}
+
+/// A relationship is stored once, from one member to another. The inverse edge
+/// is derived (`PARENT` -> `CHILD`), so the two directions can never disagree.
+model MemberRelationship {
+  id              String           @id @default(uuid()) @db.Uuid
+  tenantId        String           @map("tenant_id") @db.Uuid
+  fromMemberId    String           @map("from_member_id") @db.Uuid
+  toMemberId      String           @map("to_member_id") @db.Uuid
+  type            RelationshipType
+  notes           String?          @db.VarChar(1000)
+  createdByUserId String?          @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromMember Member @relation("RelationshipFrom", fields: [fromMemberId], references: [id], onDelete: Cascade)
+  toMember   Member @relation("RelationshipTo", fields: [toMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([fromMemberId, toMemberId, type])
+  @@index([tenantId])
+  @@index([toMemberId])
+  @@map("member_relationships")
+}
+
+/// Pre-membership pipeline record. Kept as its own aggregate rather than an
+/// "inactive member" so follow-up workflow and conversion history survive.
+model Visitor {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  firstName         String        @map("first_name") @db.VarChar(120)
+  lastName          String        @map("last_name") @db.VarChar(120)
+  email             String?       @db.VarChar(320)
+  phone             String?       @db.VarChar(32)
+  status            VisitorStatus @default(NEW)
+  source            VisitorSource @default(OTHER)
+  firstVisitAt      DateTime?     @map("first_visit_at")
+  lastVisitAt       DateTime?     @map("last_visit_at")
+  visitCount        Int           @default(0) @map("visit_count")
+  invitedByMemberId String?       @map("invited_by_member_id") @db.Uuid
+  assignedToUserId  String?       @map("assigned_to_user_id") @db.Uuid
+  addressLine1      String?       @map("address_line1") @db.VarChar(180)
+  city              String?       @db.VarChar(120)
+  countryCode       String?       @map("country_code") @db.VarChar(2)
+  interests         String[]      @default([])
+  notes             String?       @db.Text
+  followUpAt        DateTime?     @map("follow_up_at")
+  convertedMemberId String?       @map("converted_member_id") @db.Uuid
+  convertedAt       DateTime?     @map("converted_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedByMember   Member?            @relation("VisitorReferredBy", fields: [invitedByMemberId], references: [id], onDelete: SetNull)
+  visits            VisitorVisit[]
+  attendanceRecords AttendanceRecord[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, lastName, firstName])
+  @@index([tenantId, followUpAt])
+  @@map("visitors")
+}
+
+model VisitorVisit {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  visitorId        String   @map("visitor_id") @db.Uuid
+  occurredAt       DateTime @map("occurred_at")
+  serviceName      String?  @map("service_name") @db.VarChar(120)
+  attended         Boolean  @default(true)
+  notes            String?  @db.VarChar(1000)
+  recordedByUserId String?  @map("recorded_by_user_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visitor Visitor @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurredAt])
+  @@index([visitorId, occurredAt])
+  @@map("visitor_visits")
+}
+
+/// Attendance is recorded per session because that is the unit a church runs.
+model AttendanceSession {
+  id               String                  @id @default(uuid()) @db.Uuid
+  tenantId         String                  @map("tenant_id") @db.Uuid
+  title            String                  @db.VarChar(160)
+  kind             AttendanceSessionKind   @default(SERVICE)
+  status           AttendanceSessionStatus @default(OPEN)
+  occurredAt       DateTime                @map("occurred_at")
+  endedAt          DateTime?               @map("ended_at")
+  location         String?                 @db.VarChar(160)
+  departmentId     String?                 @map("department_id") @db.Uuid
+  expectedCount    Int?                    @map("expected_count")
+  notes            String?                 @db.Text
+  recordedByUserId String?                 @map("recorded_by_user_id") @db.Uuid
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  department Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  records    AttendanceRecord[]
+
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, kind, status])
+  @@index([departmentId])
+  @@map("attendance_sessions")
+}
+
+/// A record references either a member or a visitor, so a first-time guest can
+/// be counted on the day they arrive without first becoming a member. A check
+/// constraint (added in the migration) enforces exactly one of the two.
+model AttendanceRecord {
+  id               String           @id @default(uuid()) @db.Uuid
+  tenantId         String           @map("tenant_id") @db.Uuid
+  sessionId        String           @map("session_id") @db.Uuid
+  memberId         String?          @map("member_id") @db.Uuid
+  visitorId        String?          @map("visitor_id") @db.Uuid
+  status           AttendanceStatus @default(PRESENT)
+  method           AttendanceMethod @default(MANUAL)
+  checkedInAt      DateTime         @default(now()) @map("checked_in_at")
+  notes            String?          @db.VarChar(1000)
+  recordedByUserId String?          @map("recorded_by_user_id") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  tenant  Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  member  Member?           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  visitor Visitor?          @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, memberId])
+  @@unique([sessionId, visitorId])
+  @@index([tenantId, checkedInAt])
+  @@index([memberId])
+  @@index([visitorId])
+  @@map("attendance_records")
+}
+
+/// A ministry or operational team: ushering, choir, media, outreach. Distinct
+/// from the later `MINISTRY_*` permission family (community grouping).
+model Department {
+  id             String         @id @default(uuid()) @db.Uuid
+  tenantId       String         @map("tenant_id") @db.Uuid
+  name           String         @db.VarChar(120)
+  kind           DepartmentKind @default(MINISTRY)
+  description    String?        @db.Text
+  leaderMemberId String?        @map("leader_member_id") @db.Uuid
+  meetingDay     String?        @map("meeting_day") @db.VarChar(9)
+  meetingTime    String?        @map("meeting_time") @db.VarChar(5)
+  location       String?        @db.VarChar(160)
+  isActive       Boolean        @default(true) @map("is_active")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  members            DepartmentMember[]
+  volunteerRoles     VolunteerRole[]
+  attendanceSessions AttendanceSession[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, kind, isActive])
+  @@map("departments")
+}
+
+model DepartmentMember {
+  id           String                 @id @default(uuid()) @db.Uuid
+  tenantId     String                 @map("tenant_id") @db.Uuid
+  departmentId String                 @map("department_id") @db.Uuid
+  memberId     String                 @map("member_id") @db.Uuid
+  role         DepartmentMemberRole   @default(MEMBER)
+  status       DepartmentMemberStatus @default(ACTIVE)
+  joinedAt     DateTime               @default(now()) @map("joined_at")
+  leftAt       DateTime?              @map("left_at")
+  createdAt    DateTime               @default(now()) @map("created_at")
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  member     Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, memberId])
+  @@index([tenantId])
+  @@index([memberId])
+  @@map("department_members")
+}
+
+/// A job the church needs filled. A role can exist unfilled, which makes
+/// "we need three more ushers on Sunday" a queryable fact.
+model VolunteerRole {
+  id                      String              @id @default(uuid()) @db.Uuid
+  tenantId                String              @map("tenant_id") @db.Uuid
+  name                    String              @db.VarChar(120)
+  description             String?             @db.Text
+  departmentId            String?             @map("department_id") @db.Uuid
+  commitment              VolunteerCommitment @default(WEEKLY)
+  requiredCount           Int                 @default(1) @map("required_count")
+  requiresBackgroundCheck Boolean             @default(false) @map("requires_background_check")
+  isActive                Boolean             @default(true) @map("is_active")
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  department  Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignments VolunteerAssignment[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, isActive])
+  @@index([departmentId])
+  @@map("volunteer_roles")
+}
+
+model VolunteerAssignment {
+  id                String                    @id @default(uuid()) @db.Uuid
+  tenantId          String                    @map("tenant_id") @db.Uuid
+  roleId            String                    @map("role_id") @db.Uuid
+  memberId          String                    @map("member_id") @db.Uuid
+  status            VolunteerAssignmentStatus @default(ACTIVE)
+  startsAt          DateTime?                 @map("starts_at")
+  endsAt            DateTime?                 @map("ends_at")
+  backgroundCheckAt DateTime?                 @map("background_check_at")
+  notes             String?                   @db.VarChar(1000)
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role   VolunteerRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  member Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, memberId])
+  @@index([tenantId, status])
+  @@index([memberId])
+  @@map("volunteer_assignments")
+}
+
+/// Append-only story of a person inside the church, written as things happen
+/// rather than assembled at read time. It is the substrate the AI summary reads.
+model MemberTimelineEntry {
+  id                 String            @id @default(uuid()) @db.Uuid
+  tenantId           String            @map("tenant_id") @db.Uuid
+  memberId           String            @map("member_id") @db.Uuid
+  type               TimelineEventType
+  occurredAt         DateTime          @map("occurred_at")
+  title              String            @db.VarChar(160)
+  summary            String?           @db.Text
+  metadata           Json              @default("{}") @db.JsonB
+  sourceResourceType String?           @map("source_resource_type") @db.VarChar(64)
+  sourceResourceId   String?           @map("source_resource_id") @db.VarChar(128)
+  dedupeKey          String?           @map("dedupe_key") @db.VarChar(160)
+  createdByUserId    String?           @map("created_by_user_id") @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, dedupeKey])
+  @@index([tenantId, memberId, occurredAt])
+  @@index([tenantId, type])
+  @@map("member_timeline_entries")
+}
+
+/// Document metadata, kept separately from the bytes. The bytes live behind a
+/// storage port (local disk in development, object storage in production).
+model MemberDocument {
+  id               String           @id @default(uuid()) @db.Uuid
+  tenantId         String           @map("tenant_id") @db.Uuid
+  memberId         String           @map("member_id") @db.Uuid
+  title            String           @db.VarChar(200)
+  category         DocumentCategory @default(OTHER)
+  status           DocumentStatus   @default(PENDING)
+  fileName         String           @map("file_name") @db.VarChar(255)
+  contentType      String           @map("content_type") @db.VarChar(120)
+  sizeBytes        Int              @default(0) @map("size_bytes")
+  checksum         String?          @db.VarChar(128)
+  storageKey       String?          @map("storage_key") @db.VarChar(512)
+  notes            String?          @db.Text
+  expiresAt        DateTime?        @map("expires_at")
+  uploadedByUserId String?          @map("uploaded_by_user_id") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, memberId, category])
+  @@index([tenantId, status])
+  @@map("member_documents")
+}
+
+/// Persisted summary projection. Records the provider, model, and the member
+/// data version it saw, so a stale summary is detectable and regeneration is
+/// explainable.
+model MemberAiSummary {
+  id            String              @id @default(uuid()) @db.Uuid
+  tenantId      String              @map("tenant_id") @db.Uuid
+  memberId      String              @unique @map("member_id") @db.Uuid
+  status        SummaryStatus       @default(FRESH)
+  provider      SummaryProviderKind @default(DETERMINISTIC)
+  model         String?             @db.VarChar(120)
+  content       String?             @db.Text
+  highlights    String[]            @default([])
+  facts         Json?               @db.JsonB
+  generatedAt   DateTime?           @map("generated_at")
+  sourceVersion Int                 @default(0) @map("source_version")
+  error         String?             @db.Text
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("member_ai_summaries")
+}
+
 model MemberImportJob {
   id              String             @id @default(uuid()) @db.Uuid
   tenantId        String             @map("tenant_id") @db.Uuid
