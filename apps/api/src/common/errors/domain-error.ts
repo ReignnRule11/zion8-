@@ -24,6 +24,95 @@ const DEFAULT_STATUS: Partial<Record<ErrorCode, number>> = {
   [ErrorCode.OAUTH_FAILED]: 400,
   [ErrorCode.OAUTH_PROVIDER_UNAVAILABLE]: 503,
   [ErrorCode.CONTACT_NOT_VERIFIED]: 403,
+  [ErrorCode.ONBOARDING_STATUS]: 409,
+  [ErrorCode.ONBOARDING_STEP_OUT_OF_ORDER]: 409,
+  [ErrorCode.ONBOARDING_INCOMPLETE]: 409,
+  [ErrorCode.ONBOARDING_ALREADY_COMPLETED]: 409,
+  [ErrorCode.INVITATION_NOT_FOUND]: 404,
+  [ErrorCode.INVITATION_EXPIRED]: 410,
+  [ErrorCode.INVITATION_ALREADY_ACCEPTED]: 409,
+  [ErrorCode.INVITATION_ALREADY_EXISTS]: 409,
+  [ErrorCode.SUBSCRIPTION_PLAN_UNAVAILABLE]: 400,
+  [ErrorCode.MEMBER_IMPORT_INVALID]: 400,
+  [ErrorCode.MEMBER_IMPORT_NOT_READY]: 409,
+  // Membership. A missing record is 404, a uniqueness or state conflict is 409,
+  // and a payload the server cannot store is reported with the matching HTTP
+  // semantic so clients can react without parsing the message.
+  [ErrorCode.MEMBER_NOT_FOUND]: 404,
+  [ErrorCode.MEMBER_ALREADY_ARCHIVED]: 409,
+  [ErrorCode.MEMBER_EMAIL_TAKEN]: 409,
+  [ErrorCode.MEMBER_ACCOUNT_LINKED]: 409,
+  [ErrorCode.FAMILY_NOT_FOUND]: 404,
+  [ErrorCode.FAMILY_MEMBER_EXISTS]: 409,
+  [ErrorCode.FAMILY_MEMBER_NOT_FOUND]: 404,
+  [ErrorCode.RELATIONSHIP_NOT_FOUND]: 404,
+  [ErrorCode.RELATIONSHIP_EXISTS]: 409,
+  [ErrorCode.RELATIONSHIP_SELF_REFERENCE]: 400,
+  [ErrorCode.VISITOR_NOT_FOUND]: 404,
+  [ErrorCode.VISITOR_ALREADY_CONVERTED]: 409,
+  [ErrorCode.ATTENDANCE_SESSION_NOT_FOUND]: 404,
+  [ErrorCode.ATTENDANCE_SESSION_CLOSED]: 409,
+  [ErrorCode.ATTENDANCE_ATTENDEE_REQUIRED]: 400,
+  [ErrorCode.ATTENDANCE_RECORD_EXISTS]: 409,
+  [ErrorCode.DEPARTMENT_NOT_FOUND]: 404,
+  [ErrorCode.DEPARTMENT_NAME_TAKEN]: 409,
+  [ErrorCode.DEPARTMENT_MEMBER_EXISTS]: 409,
+  [ErrorCode.DEPARTMENT_MEMBER_NOT_FOUND]: 404,
+  [ErrorCode.VOLUNTEER_ROLE_NOT_FOUND]: 404,
+  [ErrorCode.VOLUNTEER_ASSIGNMENT_EXISTS]: 409,
+  [ErrorCode.VOLUNTEER_ASSIGNMENT_NOT_FOUND]: 404,
+  [ErrorCode.DOCUMENT_NOT_FOUND]: 404,
+  [ErrorCode.DOCUMENT_TOO_LARGE]: 413,
+  [ErrorCode.DOCUMENT_TYPE_UNSUPPORTED]: 415,
+  [ErrorCode.DOCUMENT_UNAVAILABLE]: 503,
+  [ErrorCode.SUMMARY_NOT_FOUND]: 404,
+  [ErrorCode.SUMMARY_GENERATION_FAILED]: 502,
+  [ErrorCode.GRAPH_LIMIT_EXCEEDED]: 400,
+  // Memory. A missing artifact or version is 404; a link that already exists or
+  // an archived artifact that cannot be changed is 409; a payload the server
+  // refuses to store keeps the matching HTTP semantic.
+  [ErrorCode.MEMORY_ARTIFACT_NOT_FOUND]: 404,
+  [ErrorCode.MEMORY_ARTIFACT_TOO_LARGE]: 413,
+  [ErrorCode.MEMORY_ARTIFACT_TYPE_UNSUPPORTED]: 415,
+  [ErrorCode.MEMORY_ARTIFACT_UNAVAILABLE]: 503,
+  [ErrorCode.MEMORY_ARTIFACT_ARCHIVED]: 409,
+  [ErrorCode.MEMORY_ARTIFACT_VERSION_NOT_FOUND]: 404,
+  [ErrorCode.MEMORY_LINK_NOT_FOUND]: 404,
+  [ErrorCode.MEMORY_LINK_EXISTS]: 409,
+  [ErrorCode.MEMORY_PROCESSING_BLOCKED]: 409,
+  [ErrorCode.MEMORY_SEARCH_UNAVAILABLE]: 503,
+  [ErrorCode.MEMORY_ANSWER_UNAVAILABLE]: 503,
+  // Zion AI. A missing conversation, message or summary is 404; a citation that
+  // does not resolve, an unindexable source or an approved summary is 409; an
+  // unavailable model, provider or corpus is 503; exhaustion is 429.
+  [ErrorCode.AI_DISABLED]: 503,
+  [ErrorCode.AI_SEARCH_UNAVAILABLE]: 503,
+  [ErrorCode.AI_ANSWER_UNAVAILABLE]: 503,
+  [ErrorCode.AI_CITATION_INVALID]: 409,
+  [ErrorCode.AI_CONVERSATION_NOT_FOUND]: 404,
+  [ErrorCode.AI_MESSAGE_NOT_FOUND]: 404,
+  [ErrorCode.AI_INDEX_NOT_READY]: 409,
+  [ErrorCode.AI_SOURCE_NOT_INDEXABLE]: 409,
+  [ErrorCode.AI_EMBEDDING_MODEL_UNAVAILABLE]: 503,
+  [ErrorCode.AI_QUOTA_EXCEEDED]: 429,
+  [ErrorCode.AI_INSIGHT_COHORT_TOO_SMALL]: 409,
+  [ErrorCode.AI_SUMMARY_NOT_FOUND]: 404,
+  [ErrorCode.AI_SUMMARY_ALREADY_APPROVED]: 409,
+  [ErrorCode.SERMON_NOT_FOUND]: 404,
+  [ErrorCode.SERMON_SLUG_TAKEN]: 409,
+  [ErrorCode.SERMON_NOT_PUBLISHABLE]: 409,
+  [ErrorCode.SERMON_ALREADY_PUBLISHED]: 409,
+  [ErrorCode.SERMON_ALREADY_ARCHIVED]: 409,
+  [ErrorCode.SERMON_MEDIA_REQUIRED]: 400,
+  [ErrorCode.SERMON_MEDIA_TYPE_UNSUPPORTED]: 415,
+  [ErrorCode.SERMON_SERIES_NOT_FOUND]: 404,
+  [ErrorCode.SERMON_SERIES_SLUG_TAKEN]: 409,
+  [ErrorCode.SERMON_NOTE_NOT_FOUND]: 404,
+  [ErrorCode.SERMON_SHARE_NOT_FOUND]: 404,
+  [ErrorCode.SERMON_SHARE_REVOKED]: 410,
+  [ErrorCode.SERMON_SHARE_EXPIRED]: 410,
+  [ErrorCode.SERMON_PODCAST_UNAVAILABLE]: 404,
+  [ErrorCode.SERMON_PIPELINE_BLOCKED]: 409,
   [ErrorCode.RESOURCE_NOT_FOUND]: 404,
   [ErrorCode.RESOURCE_CONFLICT]: 409,
   [ErrorCode.RATE_LIMITED]: 429,
@@ -136,6 +225,71 @@ export class DomainError extends Error {
 
   static contactNotVerified(message = 'Please verify your contact details first'): DomainError {
     return new DomainError(ErrorCode.CONTACT_NOT_VERIFIED, message);
+  }
+
+  static onboardingStepOutOfOrder(
+    missingSteps: readonly string[],
+    message = 'Complete the earlier onboarding steps first',
+  ): DomainError {
+    return new DomainError(ErrorCode.ONBOARDING_STEP_OUT_OF_ORDER, message, [
+      {
+        path: 'step',
+        code: ErrorCode.ONBOARDING_STEP_OUT_OF_ORDER,
+        message: `Required steps are incomplete: ${missingSteps.join(', ')}`,
+      },
+    ]);
+  }
+
+  static onboardingIncomplete(
+    missingSteps: readonly string[],
+    message = 'The workspace cannot be finalized until the required steps are complete',
+  ): DomainError {
+    return new DomainError(ErrorCode.ONBOARDING_INCOMPLETE, message, [
+      {
+        path: 'step',
+        code: ErrorCode.ONBOARDING_INCOMPLETE,
+        message: `Required steps are incomplete: ${missingSteps.join(', ')}`,
+      },
+    ]);
+  }
+
+  static onboardingAlreadyCompleted(message = 'Onboarding is already complete'): DomainError {
+    return new DomainError(ErrorCode.ONBOARDING_ALREADY_COMPLETED, message);
+  }
+
+  static invitationNotFound(message = 'This invitation could not be found'): DomainError {
+    return new DomainError(ErrorCode.INVITATION_NOT_FOUND, message);
+  }
+
+  static invitationExpired(message = 'This invitation has expired'): DomainError {
+    return new DomainError(ErrorCode.INVITATION_EXPIRED, message);
+  }
+
+  static invitationAlreadyAccepted(
+    message = 'This invitation has already been accepted',
+  ): DomainError {
+    return new DomainError(ErrorCode.INVITATION_ALREADY_ACCEPTED, message);
+  }
+
+  static invitationAlreadyExists(message = 'That person has already been invited'): DomainError {
+    return new DomainError(ErrorCode.INVITATION_ALREADY_EXISTS, message);
+  }
+
+  static subscriptionPlanUnavailable(
+    message = 'That subscription plan is not available',
+  ): DomainError {
+    return new DomainError(ErrorCode.SUBSCRIPTION_PLAN_UNAVAILABLE, message);
+  }
+
+  static memberImportInvalid(
+    message = 'The import file could not be read',
+    details?: FieldIssue[],
+  ): DomainError {
+    return new DomainError(ErrorCode.MEMBER_IMPORT_INVALID, message, details);
+  }
+
+  static memberImportNotReady(message = 'The import is not ready to be applied'): DomainError {
+    return new DomainError(ErrorCode.MEMBER_IMPORT_NOT_READY, message);
   }
 
   static notFound(message = 'Resource not found'): DomainError {

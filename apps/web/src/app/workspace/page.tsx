@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import type { SessionListResponse } from '@zion8/contracts';
+import type { OnboardingSummary, SessionListResponse } from '@zion8/contracts';
 import { ApiRequestError, api } from '@/lib/api-client';
 import { getAccessToken } from '@/lib/session';
 import { SessionList } from '@/components/session-list';
@@ -25,6 +26,18 @@ export default async function WorkspacePage() {
 
   const permissions = profile.permissions;
 
+  let onboarding: OnboardingSummary | null = null;
+  if (profile.activeTenant) {
+    try {
+      onboarding = await api.getOnboardingSummary(token);
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.isUnauthenticated) {
+        redirect('/sign-in');
+      }
+      onboarding = null;
+    }
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-12">
       <header className="flex items-center justify-between">
@@ -39,6 +52,24 @@ export default async function WorkspacePage() {
         </div>
         <SignOutButton />
       </header>
+
+      {onboarding && !onboarding.completed ? (
+        <section className="border-zion-500/40 bg-zion-500/10 mt-8 rounded-2xl border p-6">
+          <h2 className="text-zion-200 text-sm font-medium uppercase tracking-wide">
+            Finish setting up your workspace
+          </h2>
+          <p className="mt-2 text-sm text-slate-200">
+            Your church setup is {onboarding.percentComplete}% complete. Continue from{' '}
+            {onboarding.currentStep.replaceAll('_', ' ').toLowerCase()}.
+          </p>
+          <Link
+            href="/onboarding"
+            className="bg-zion-600 hover:bg-zion-500 mt-4 inline-block rounded-lg px-4 py-2.5 text-sm font-medium text-white transition"
+          >
+            Continue onboarding
+          </Link>
+        </section>
+      ) : null}
 
       <section className="mt-10 grid gap-4 sm:grid-cols-2">
         <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">

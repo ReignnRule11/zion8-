@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { OnboardingModule } from '../onboarding/onboarding.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
 import { AuthController } from './auth.controller';
 import { AuthMailerService } from './auth-mailer.service';
@@ -20,7 +21,7 @@ import { WebAuthnController } from './webauthn.controller';
 import { WebAuthnService } from './webauthn.service';
 
 @Module({
-  imports: [AuditModule, TenancyModule, NotificationsModule],
+  imports: [AuditModule, TenancyModule, NotificationsModule, forwardRef(() => OnboardingModule)],
   controllers: [AuthController, MfaController, SessionsController, WebAuthnController],
   providers: [
     AuthService,
@@ -41,6 +42,8 @@ import { WebAuthnService } from './webauthn.service';
     SessionService,
     PasswordService,
     TokenService,
+    VerificationService,
+    IdentityService,
     JwtAuthGuard,
     AuthorizationGuard,
   ],

@@ -1,6 +1,5 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { Request } from 'express';
 import { type Permission, type Role, roleHasPermission } from '@zion8/contracts';
 import { DomainError } from '../../../common/errors/domain-error';
 import {
@@ -9,6 +8,7 @@ import {
   PERMISSIONS_KEY,
   ROLES_KEY,
 } from '../../../common/security/decorators';
+import { requestFromContext } from '../../../common/security/context-request';
 import type { AuthenticatedPrincipal } from '../../../common/security/principal';
 
 @Injectable()
@@ -28,8 +28,8 @@ export class AuthorizationGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<Request>();
-    const principal = request.principal;
+    const request = requestFromContext(context);
+    const principal = request?.principal;
     const optional = this.reflector.getAllAndOverride<boolean>(OPTIONAL_AUTH_KEY, targets) ?? false;
 
     if (!principal) {

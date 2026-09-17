@@ -59,6 +59,69 @@ enum ChallengePurpose {
   SMS_OTP
   CHANGE_EMAIL
   CHANGE_PHONE
+  INVITATION
+}
+
+/// Ordered milestones of the church onboarding journey.
+enum OnboardingStep {
+  REGISTRATION
+  EMAIL_VERIFICATION
+  TENANT_PROVISIONING
+  WORKSPACE_CREATION
+  ADMINISTRATOR_INVITATION
+  SUBSCRIPTION_SELECTION
+  BRAND_CUSTOMIZATION
+  FIRST_MEMBER_IMPORT
+  DASHBOARD_READY
+}
+
+enum OnboardingStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum OnboardingStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  FAILED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum SubscriptionPlan {
+  FREE
+  STANDARD
+  GROWTH
+  MULTISITE
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum MemberImportStatus {
+  READY
+  IMPORTING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
 }
 
 enum MfaFactorType {
@@ -86,6 +149,101 @@ enum AssuranceLevel {
   AAL3
 }
 
+/// The kind of institutional memory an artifact holds. Modality (still image,
+/// document, audio, video) is an attribute of the kind, not a separate table, so
+/// one pipeline and one retrieval surface serves the whole archive.
+enum MemoryArtifactKind {
+  PHOTO
+  DOCUMENT
+  AUDIO
+  VIDEO
+  SERMON
+  WORSHIP_SET
+  MEETING_MINUTE
+  BULLETIN
+  CERTIFICATE
+  CORRESPONDENCE
+  HISTORICAL
+  OTHER
+}
+
+enum MemoryArtifactStatus {
+  PENDING
+  PROCESSING
+  READY
+  PARTIAL
+  FAILED
+  ARCHIVED
+}
+
+/// Where an artifact came from. A document uploaded to a member is also
+/// institutional memory, so the engine links to it instead of copying bytes.
+enum MemoryArtifactOrigin {
+  UPLOAD
+  MEMBERSHIP_DOCUMENT
+  MEMBER_IMPORT
+  EXTERNAL
+}
+
+/// How precisely the capture date is known. Recording the precision keeps the
+/// timeline honest: a labelled 1952 photograph is a YEAR, not an invented day.
+enum CaptureDatePrecision {
+  EXACT
+  DAY
+  MONTH
+  YEAR
+  DECADE
+  UNKNOWN
+}
+
+/// What an artifact can be attached to. One enum keeps every link in one table,
+/// so "everything about this member" is a single indexed lookup.
+enum MemoryLinkType {
+  MEMBER
+  FAMILY
+  DEPARTMENT
+  VISITOR
+  EVENT
+  SERMON
+  GIVING_FUND
+  TENANT
+}
+
+/// Lifecycle of a unit of asynchronous memory work. BLOCKED means the pipeline
+/// cannot proceed because a required capability is not configured; it is never
+/// treated as success.
+enum MemoryJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  BLOCKED
+  FAILED
+  CANCELLED
+}
+
+/// The processing stages a memory job moves through.
+enum MemoryJobType {
+  METADATA
+  EXTRACT
+  TRANSCRIBE
+  CATEGORIZE
+  CHUNK
+  EMBED
+  INDEX
+  GRAPH
+  TIMELINE
+}
+
+/// Durable queue state for a published integration event. The row is written in
+/// the same transaction as the state change that produced it, so no event is
+/// lost between the database and the message broker.
+enum OutboxEventStatus {
+  PENDING
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
 model Tenant {
   id        String       @id @default(uuid()) @db.Uuid
   slug      String       @unique @db.VarChar(40)
@@ -96,11 +254,57 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
-  memberships    Membership[]
-  refreshTokens  RefreshToken[]
-  auditLogs      AuditLog[]
-  sessions       AuthSession[]
-  challenges     VerificationChallenge[]
+  memberships      Membership[]
+  refreshTokens    RefreshToken[]
+  auditLogs        AuditLog[]
+  sessions         AuthSession[]
+  challenges       VerificationChallenge[]
+  onboarding       TenantOnboarding?
+  churchProfile    ChurchProfile?
+  invitations      TenantInvitation[]
+  subscription     TenantSubscription?
+  brandTheme       BrandTheme?
+  memberImportJobs MemberImportJob[]
+
+  members              Member[]
+  families             Family[]
+  familyMembers        FamilyMember[]
+  memberRelationships  MemberRelationship[]
+  visitors             Visitor[]
+  visitorVisits        VisitorVisit[]
+  attendanceSessions   AttendanceSession[]
+  attendanceRecords    AttendanceRecord[]
+  departments          Department[]
+  departmentMembers    DepartmentMember[]
+  volunteerRoles       VolunteerRole[]
+  volunteerAssignments VolunteerAssignment[]
+  timelineEntries      MemberTimelineEntry[]
+  documents            MemberDocument[]
+  aiSummaries          MemberAiSummary[]
+
+  memoryArtifacts MemoryArtifact[]
+  memoryVersions  MemoryArtifactVersion[]
+  memoryLinks     MemoryArtifactLink[]
+  memoryTags      MemoryArtifactTag[]
+  memoryJobs      MemoryProcessingJob[]
+  outboxEvents    OutboxEvent[]
+
+  aiEmbeddingModels AiEmbeddingModel[]
+  aiDocuments       AiDocument[]
+  aiChunks          AiChunk[]
+  aiChunkEmbeddings AiChunkEmbedding[]
+
+  sermonSeries          SermonSeries[]
+  sermons               Sermon[]
+  sermonTags            SermonTag[]
+  sermonTranscripts     SermonTranscript[]
+  sermonTranscriptSegs  SermonTranscriptSegment[]
+  sermonChapters        SermonChapter[]
+  sermonScriptures      SermonScripture[]
+  sermonInsights        SermonInsight[]
+  sermonNotes           SermonNote[]
+  sermonShares          SermonShare[]
+  sermonJobs            SermonProcessingJob[]
 
   @@map("tenants")
 }
@@ -110,29 +314,34 @@ model Tenant {
 /// how a user can actually authenticate. At least one contact is enforced by a
 /// database check constraint.
 model User {
-  id                String     @id @default(uuid()) @db.Uuid
-  email             String?    @unique @db.VarChar(320)
-  phone             String?    @unique @db.VarChar(32)
-  firstName         String     @map("first_name") @db.VarChar(120)
-  lastName          String     @map("last_name") @db.VarChar(120)
-  status            UserStatus @default(ACTIVE)
-  isPlatformAdmin   Boolean    @default(false) @map("is_platform_admin")
-  emailVerifiedAt   DateTime?  @map("email_verified_at")
-  phoneVerifiedAt   DateTime?  @map("phone_verified_at")
-  lastLoginAt       DateTime?  @map("last_login_at")
-  createdAt         DateTime   @default(now()) @map("created_at")
-  updatedAt         DateTime   @updatedAt @map("updated_at")
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String?    @unique @db.VarChar(320)
+  phone           String?    @unique @db.VarChar(32)
+  firstName       String     @map("first_name") @db.VarChar(120)
+  lastName        String     @map("last_name") @db.VarChar(120)
+  status          UserStatus @default(ACTIVE)
+  isPlatformAdmin Boolean    @default(false) @map("is_platform_admin")
+  emailVerifiedAt DateTime?  @map("email_verified_at")
+  phoneVerifiedAt DateTime?  @map("phone_verified_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
 
-  memberships      Membership[]
-  refreshTokens    RefreshToken[]
-  auditLogs        AuditLog[]
-  identities       UserIdentity[]
-  password         PasswordCredential?
-  sessions         AuthSession[]
-  challenges       VerificationChallenge[]
-  mfaFactors       MfaFactor[]
-  webauthnCredentials WebAuthnCredential[]
-  recoveryCodes    MfaRecoveryCode[]
+  memberships           Membership[]
+  refreshTokens         RefreshToken[]
+  auditLogs             AuditLog[]
+  identities            UserIdentity[]
+  password              PasswordCredential?
+  sessions              AuthSession[]
+  challenges            VerificationChallenge[]
+  mfaFactors            MfaFactor[]
+  webauthnCredentials   WebAuthnCredential[]
+  recoveryCodes         MfaRecoveryCode[]
+  invitationsSent       TenantInvitation[]      @relation("InvitationsSent")
+  invitationsAccepted   TenantInvitation[]      @relation("InvitationsAccepted")
+  subscriptionsSelected TenantSubscription[]    @relation("SubscriptionsSelected")
+  memberImportsCreated  MemberImportJob[]       @relation("MemberImportsCreated")
+  membersCreated        Member[]                @relation("MembersCreated")
 
   @@map("users")
 }
@@ -199,21 +408,21 @@ model PasswordCredential {
 /// A login session, distinct from the refresh tokens that rotate inside it.
 /// This is what a user sees and revokes in "your devices".
 model AuthSession {
-  id                   String         @id @default(uuid()) @db.Uuid
-  userId               String         @map("user_id") @db.Uuid
-  tenantId             String?        @map("tenant_id") @db.Uuid
-  status               SessionStatus  @default(ACTIVE)
-  assuranceLevel       AssuranceLevel @default(AAL1) @map("assurance_level")
-  deviceName           String?        @map("device_name") @db.VarChar(120)
-  userAgent            String?        @map("user_agent") @db.VarChar(512)
-  ipAddress            String?        @map("ip_address") @db.VarChar(64)
-  mfaSatisfiedAt       DateTime?      @map("mfa_satisfied_at")
-  createdAt            DateTime       @default(now()) @map("created_at")
-  lastSeenAt           DateTime       @default(now()) @map("last_seen_at")
-  lastAuthenticatedAt  DateTime       @default(now()) @map("last_authenticated_at")
-  expiresAt            DateTime       @map("expires_at")
-  revokedAt            DateTime?      @map("revoked_at")
-  revokedReason        String?        @map("revoked_reason") @db.VarChar(120)
+  id                  String         @id @default(uuid()) @db.Uuid
+  userId              String         @map("user_id") @db.Uuid
+  tenantId            String?        @map("tenant_id") @db.Uuid
+  status              SessionStatus  @default(ACTIVE)
+  assuranceLevel      AssuranceLevel @default(AAL1) @map("assurance_level")
+  deviceName          String?        @map("device_name") @db.VarChar(120)
+  userAgent           String?        @map("user_agent") @db.VarChar(512)
+  ipAddress           String?        @map("ip_address") @db.VarChar(64)
+  mfaSatisfiedAt      DateTime?      @map("mfa_satisfied_at")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  lastSeenAt          DateTime       @default(now()) @map("last_seen_at")
+  lastAuthenticatedAt DateTime       @default(now()) @map("last_authenticated_at")
+  expiresAt           DateTime       @map("expires_at")
+  revokedAt           DateTime?      @map("revoked_at")
+  revokedReason       String?        @map("revoked_reason") @db.VarChar(120)
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant        Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -293,8 +502,8 @@ model MfaFactor {
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
-  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  webauthn   WebAuthnCredential?
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  webauthn WebAuthnCredential?
 
   @@index([userId, status])
   @@map("mfa_factors")
@@ -356,4 +565,1438 @@ model AuditLog {
   @@index([actorUserId, createdAt])
   @@index([resourceType, resourceId])
   @@map("audit_logs")
+}
+
+/// One row per church workspace, tracking where the onboarding journey is.
+/// `currentStep` is a cache; the authoritative progress is the set of step rows
+/// and is recomputed by reconciliation so the journey can always resume.
+model TenantOnboarding {
+  id             String           @id @default(uuid()) @db.Uuid
+  tenantId       String           @unique @map("tenant_id") @db.Uuid
+  status         OnboardingStatus @default(IN_PROGRESS)
+  currentStep    OnboardingStep   @default(REGISTRATION) @map("current_step")
+  startedAt      DateTime         @default(now()) @map("started_at")
+  completedAt    DateTime?        @map("completed_at")
+  lastActivityAt DateTime         @default(now()) @map("last_activity_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  tenant Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  steps  TenantOnboardingStep[]
+
+  @@map("tenant_onboardings")
+}
+
+/// Per-step state: status, retry count, and the last error. Kept in its own
+/// table so that a failed or skipped optional step never blocks the mandatory
+/// ones and so retries are observable in the audit trail.
+model TenantOnboardingStep {
+  id           String               @id @default(uuid()) @db.Uuid
+  tenantId     String               @map("tenant_id") @db.Uuid
+  step         OnboardingStep
+  status       OnboardingStepStatus @default(PENDING)
+  attemptCount Int                  @default(0) @map("attempt_count")
+  lastError    String?              @map("last_error") @db.Text
+  metadata     Json                 @default("{}") @db.JsonB
+  startedAt    DateTime?            @map("started_at")
+  completedAt  DateTime?            @map("completed_at")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+
+  onboarding TenantOnboarding @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+
+  @@unique([tenantId, step])
+  @@index([tenantId, status])
+  @@map("tenant_onboarding_steps")
+}
+
+/// Operational details of the church: contact information, address, and the
+/// weekly rhythm of worship. Identity (name, slug, timezone, locale) stays on
+/// the tenant row.
+model ChurchProfile {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @unique @map("tenant_id") @db.Uuid
+  legalName        String?  @map("legal_name") @db.VarChar(160)
+  contactEmail     String?  @map("contact_email") @db.VarChar(320)
+  contactPhone     String?  @map("contact_phone") @db.VarChar(32)
+  websiteUrl       String?  @map("website_url") @db.VarChar(2048)
+  addressLine1     String?  @map("address_line1") @db.VarChar(180)
+  addressLine2     String?  @map("address_line2") @db.VarChar(180)
+  city             String?  @db.VarChar(120)
+  region           String?  @db.VarChar(120)
+  postalCode       String?  @map("postal_code") @db.VarChar(32)
+  countryCode      String?  @map("country_code") @db.VarChar(2)
+  currency         String   @default("USD") @db.VarChar(3)
+  weekStart        String   @default("SUNDAY") @map("week_start") @db.VarChar(9)
+  estimatedMembers Int?     @map("estimated_members")
+  serviceTimes     Json     @default("[]") @map("service_times") @db.JsonB
+  completedAt      DateTime @default(now()) @map("completed_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("church_profiles")
+}
+
+/// Business record of an administrator invitation. The bearer token is issued
+/// through VerificationChallenge; `challengeId` points at the live one so a
+/// resend can supersede it without leaving stale tokens usable.
+model TenantInvitation {
+  id              String           @id @default(uuid()) @db.Uuid
+  tenantId        String           @map("tenant_id") @db.Uuid
+  email           String           @db.VarChar(320)
+  firstName       String?          @map("first_name") @db.VarChar(120)
+  lastName        String?          @map("last_name") @db.VarChar(120)
+  role            Role
+  status          InvitationStatus @default(PENDING)
+  invitedByUserId String?          @map("invited_by_user_id") @db.Uuid
+  acceptedUserId  String?          @map("accepted_user_id") @db.Uuid
+  challengeId     String?          @map("challenge_id") @db.Uuid
+  expiresAt       DateTime         @map("expires_at")
+  acceptedAt      DateTime?        @map("accepted_at")
+  revokedAt       DateTime?        @map("revoked_at")
+  lastSentAt      DateTime         @map("last_sent_at")
+  resendCount     Int              @default(0) @map("resend_count")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  tenant       Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedBy    User?  @relation("InvitationsSent", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  acceptedUser User?  @relation("InvitationsAccepted", fields: [acceptedUserId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, email])
+  @@index([tenantId, status])
+  @@index([email])
+  @@map("tenant_invitations")
+}
+
+/// Current plan for a workspace. Billing integration is out of scope for this
+/// phase; the row records the canonical selection and the period it covers.
+model TenantSubscription {
+  id                 String             @id @default(uuid()) @db.Uuid
+  tenantId           String             @unique @map("tenant_id") @db.Uuid
+  plan               SubscriptionPlan   @default(FREE)
+  billingCycle       BillingCycle       @default(MONTHLY) @map("billing_cycle")
+  status             SubscriptionStatus @default(ACTIVE)
+  seats              Int?
+  priceCents         Int                @default(0) @map("price_cents")
+  currency           String             @default("USD") @db.VarChar(3)
+  selectedByUserId   String?            @map("selected_by_user_id") @db.Uuid
+  trialEndsAt        DateTime?          @map("trial_ends_at")
+  currentPeriodStart DateTime           @default(now()) @map("current_period_start")
+  currentPeriodEnd   DateTime?          @map("current_period_end")
+  canceledAt         DateTime?          @map("canceled_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  selectedBy User?  @relation("SubscriptionsSelected", fields: [selectedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("tenant_subscriptions")
+}
+
+/// Visual identity of the workspace: names, logos, palette, and the optional
+/// custom domain the public site will eventually be served from.
+model BrandTheme {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @unique @map("tenant_id") @db.Uuid
+  displayName    String?  @map("display_name") @db.VarChar(120)
+  tagline        String?  @db.VarChar(160)
+  logoUrl        String?  @map("logo_url") @db.VarChar(2048)
+  faviconUrl     String?  @map("favicon_url") @db.VarChar(2048)
+  primaryColor   String   @default("#4f46e5") @map("primary_color") @db.VarChar(7)
+  secondaryColor String   @default("#0f172a") @map("secondary_color") @db.VarChar(7)
+  accentColor    String   @default("#38bdf8") @map("accent_color") @db.VarChar(7)
+  customDomain   String?  @map("custom_domain") @db.VarChar(253)
+  welcomeMessage String?  @map("welcome_message") @db.VarChar(600)
+  completedAt    DateTime @default(now()) @map("completed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("brand_themes")
+}
+
+/// Persisted two-phase member import. `rows` holds the validated payload and
+/// `resumeIndex` lets a partially applied import continue where it stopped
+/// instead of re-importing or losing the remaining rows.
+// --- Membership -------------------------------------------------------------
+//
+// Enums for the membership bounded context. The domain keeps the church's own
+// pastoral record (Member) separate from the global sign-in identity (User);
+// the two are linked late, if ever.
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  TRANSFERRED
+  DECEASED
+  ARCHIVED
+}
+
+enum MemberGender {
+  MALE
+  FEMALE
+  OTHER
+  UNDISCLOSED
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  WIDOWED
+  DIVORCED
+  SEPARATED
+  UNDISCLOSED
+}
+
+enum FamilyRole {
+  HEAD
+  SPOUSE
+  CHILD
+  PARENT
+  SIBLING
+  RELATIVE
+  GUARDIAN
+  WARD
+  OTHER
+}
+
+enum FamilyStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum RelationshipType {
+  SPOUSE
+  PARENT
+  CHILD
+  SIBLING
+  GUARDIAN
+  WARD
+  GRANDPARENT
+  GRANDCHILD
+  RELATIVE
+  MENTOR
+  MENTEE
+  FRIEND
+  EMERGENCY_CONTACT
+  OTHER
+}
+
+enum VisitorStatus {
+  NEW
+  FOLLOW_UP
+  RETURNING
+  CONNECTED
+  CONVERTED
+  DORMANT
+  ARCHIVED
+}
+
+enum VisitorSource {
+  INVITED_BY_MEMBER
+  WALK_IN
+  EVENT
+  WEBSITE
+  OUTREACH
+  SOCIAL_MEDIA
+  REFERRAL
+  OTHER
+}
+
+enum AttendanceSessionKind {
+  SERVICE
+  EVENT
+  CLASS
+  GROUP
+  OUTREACH
+  OTHER
+}
+
+enum AttendanceSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum AttendanceMethod {
+  MANUAL
+  SELF
+  QR
+  KIOSK
+  IMPORT
+}
+
+enum DepartmentKind {
+  MINISTRY
+  CHOIR
+  USHERING
+  MEDIA
+  CHILDREN
+  YOUTH
+  ADULT
+  OUTREACH
+  PRAYER
+  HOSPITALITY
+  ADMINISTRATION
+  OTHER
+}
+
+enum DepartmentMemberRole {
+  LEADER
+  ASSISTANT_LEADER
+  COORDINATOR
+  MEMBER
+}
+
+enum DepartmentMemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum VolunteerCommitment {
+  ONE_OFF
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  SEASONAL
+  ON_CALL
+}
+
+enum VolunteerAssignmentStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum TimelineEventType {
+  MEMBERSHIP
+  ATTENDANCE
+  RELATIONSHIP
+  FAMILY
+  DEPARTMENT
+  VOLUNTEER
+  DOCUMENT
+  VISITOR
+  CONVERSION
+  NOTE
+  SUMMARY
+  SYSTEM
+}
+
+enum DocumentCategory {
+  IDENTITY
+  CERTIFICATE
+  CONSENT
+  MEDICAL
+  FINANCIAL
+  PASTORAL
+  LEGAL
+  MEDIA
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  AVAILABLE
+  ARCHIVED
+  FAILED
+}
+
+enum SummaryStatus {
+  FRESH
+  STALE
+  GENERATING
+  FAILED
+}
+
+enum SummaryProviderKind {
+  DETERMINISTIC
+  LLM
+}
+
+/// The church's pastoral record of a person. Deliberately independent of the
+/// global `User` identity: most congregants never sign in, and the church must
+/// be able to keep a record for someone who has no account. `userId` links the
+/// record to an account when one exists, without merging the two.
+model Member {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @map("tenant_id") @db.Uuid
+  userId          String?       @map("user_id") @db.Uuid
+  firstName       String        @map("first_name") @db.VarChar(120)
+  middleName      String?       @map("middle_name") @db.VarChar(120)
+  lastName        String        @map("last_name") @db.VarChar(120)
+  preferredName   String?       @map("preferred_name") @db.VarChar(120)
+  status          MemberStatus  @default(ACTIVE)
+  gender          MemberGender  @default(UNDISCLOSED)
+  maritalStatus   MaritalStatus @default(UNDISCLOSED) @map("marital_status")
+  dateOfBirth     DateTime?     @map("date_of_birth") @db.Date
+  email           String?       @db.VarChar(320)
+  phone           String?       @db.VarChar(32)
+  photoUrl        String?       @map("photo_url") @db.VarChar(2048)
+  addressLine1    String?       @map("address_line1") @db.VarChar(180)
+  addressLine2    String?       @map("address_line2") @db.VarChar(180)
+  city            String?       @db.VarChar(120)
+  region          String?       @db.VarChar(120)
+  postalCode      String?       @map("postal_code") @db.VarChar(32)
+  countryCode     String?       @map("country_code") @db.VarChar(2)
+  joinedAt        DateTime?     @map("joined_at") @db.Date
+  baptizedAt      DateTime?     @map("baptized_at") @db.Date
+  notes           String?       @db.Text
+  tags            String[]      @default([])
+  customFields    Json          @default("{}") @map("custom_fields") @db.JsonB
+  archivedAt      DateTime?     @map("archived_at")
+  createdByUserId String?       @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy            User?                 @relation("MembersCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  families             FamilyMember[]
+  relationshipsFrom    MemberRelationship[]  @relation("RelationshipFrom")
+  relationshipsTo      MemberRelationship[]  @relation("RelationshipTo")
+  departmentMembers    DepartmentMember[]
+  volunteerAssignments VolunteerAssignment[]
+  attendanceRecords    AttendanceRecord[]
+  timelineEntries      MemberTimelineEntry[]
+  documents            MemberDocument[]
+  summary              MemberAiSummary?
+  visitorsReferred     Visitor[]             @relation("VisitorReferredBy")
+
+  @@unique([tenantId, email])
+  @@index([tenantId, status])
+  @@index([tenantId, lastName, firstName])
+  @@index([userId])
+  @@map("members")
+}
+
+/// A household: the unit the church visits, cares for, and records against.
+model Family {
+  id           String       @id @default(uuid()) @db.Uuid
+  tenantId     String       @map("tenant_id") @db.Uuid
+  name         String       @db.VarChar(120)
+  status       FamilyStatus @default(ACTIVE)
+  addressLine1 String?      @map("address_line1") @db.VarChar(180)
+  addressLine2 String?      @map("address_line2") @db.VarChar(180)
+  city         String?      @db.VarChar(120)
+  region       String?      @db.VarChar(120)
+  postalCode   String?      @map("postal_code") @db.VarChar(32)
+  countryCode  String?      @map("country_code") @db.VarChar(2)
+  homePhone    String?      @map("home_phone") @db.VarChar(32)
+  notes        String?      @db.Text
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  members FamilyMember[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, name])
+  @@map("families")
+}
+
+model FamilyMember {
+  id        String     @id @default(uuid()) @db.Uuid
+  tenantId  String     @map("tenant_id") @db.Uuid
+  familyId  String     @map("family_id") @db.Uuid
+  memberId  String     @map("member_id") @db.Uuid
+  role      FamilyRole @default(OTHER)
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, memberId])
+  @@index([tenantId])
+  @@index([memberId])
+  @@map("family_members")
+}
+
+/// A relationship is stored once, from one member to another. The inverse edge
+/// is derived (`PARENT` -> `CHILD`), so the two directions can never disagree.
+model MemberRelationship {
+  id              String           @id @default(uuid()) @db.Uuid
+  tenantId        String           @map("tenant_id") @db.Uuid
+  fromMemberId    String           @map("from_member_id") @db.Uuid
+  toMemberId      String           @map("to_member_id") @db.Uuid
+  type            RelationshipType
+  notes           String?          @db.VarChar(1000)
+  createdByUserId String?          @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromMember Member @relation("RelationshipFrom", fields: [fromMemberId], references: [id], onDelete: Cascade)
+  toMember   Member @relation("RelationshipTo", fields: [toMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([fromMemberId, toMemberId, type])
+  @@index([tenantId])
+  @@index([toMemberId])
+  @@map("member_relationships")
+}
+
+/// Pre-membership pipeline record. Kept as its own aggregate rather than an
+/// "inactive member" so follow-up workflow and conversion history survive.
+model Visitor {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  firstName         String        @map("first_name") @db.VarChar(120)
+  lastName          String        @map("last_name") @db.VarChar(120)
+  email             String?       @db.VarChar(320)
+  phone             String?       @db.VarChar(32)
+  status            VisitorStatus @default(NEW)
+  source            VisitorSource @default(OTHER)
+  firstVisitAt      DateTime?     @map("first_visit_at")
+  lastVisitAt       DateTime?     @map("last_visit_at")
+  visitCount        Int           @default(0) @map("visit_count")
+  invitedByMemberId String?       @map("invited_by_member_id") @db.Uuid
+  assignedToUserId  String?       @map("assigned_to_user_id") @db.Uuid
+  addressLine1      String?       @map("address_line1") @db.VarChar(180)
+  city              String?       @db.VarChar(120)
+  countryCode       String?       @map("country_code") @db.VarChar(2)
+  interests         String[]      @default([])
+  notes             String?       @db.Text
+  followUpAt        DateTime?     @map("follow_up_at")
+  convertedMemberId String?       @map("converted_member_id") @db.Uuid
+  convertedAt       DateTime?     @map("converted_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedByMember   Member?            @relation("VisitorReferredBy", fields: [invitedByMemberId], references: [id], onDelete: SetNull)
+  visits            VisitorVisit[]
+  attendanceRecords AttendanceRecord[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, lastName, firstName])
+  @@index([tenantId, followUpAt])
+  @@map("visitors")
+}
+
+model VisitorVisit {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  visitorId        String   @map("visitor_id") @db.Uuid
+  occurredAt       DateTime @map("occurred_at")
+  serviceName      String?  @map("service_name") @db.VarChar(120)
+  attended         Boolean  @default(true)
+  notes            String?  @db.VarChar(1000)
+  recordedByUserId String?  @map("recorded_by_user_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visitor Visitor @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurredAt])
+  @@index([visitorId, occurredAt])
+  @@map("visitor_visits")
+}
+
+/// Attendance is recorded per session because that is the unit a church runs.
+model AttendanceSession {
+  id               String                  @id @default(uuid()) @db.Uuid
+  tenantId         String                  @map("tenant_id") @db.Uuid
+  title            String                  @db.VarChar(160)
+  kind             AttendanceSessionKind   @default(SERVICE)
+  status           AttendanceSessionStatus @default(OPEN)
+  occurredAt       DateTime                @map("occurred_at")
+  endedAt          DateTime?               @map("ended_at")
+  location         String?                 @db.VarChar(160)
+  departmentId     String?                 @map("department_id") @db.Uuid
+  expectedCount    Int?                    @map("expected_count")
+  notes            String?                 @db.Text
+  recordedByUserId String?                 @map("recorded_by_user_id") @db.Uuid
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  department Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  records    AttendanceRecord[]
+
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, kind, status])
+  @@index([departmentId])
+  @@map("attendance_sessions")
+}
+
+/// A record references either a member or a visitor, so a first-time guest can
+/// be counted on the day they arrive without first becoming a member. A check
+/// constraint (added in the migration) enforces exactly one of the two.
+model AttendanceRecord {
+  id               String           @id @default(uuid()) @db.Uuid
+  tenantId         String           @map("tenant_id") @db.Uuid
+  sessionId        String           @map("session_id") @db.Uuid
+  memberId         String?          @map("member_id") @db.Uuid
+  visitorId        String?          @map("visitor_id") @db.Uuid
+  status           AttendanceStatus @default(PRESENT)
+  method           AttendanceMethod @default(MANUAL)
+  checkedInAt      DateTime         @default(now()) @map("checked_in_at")
+  notes            String?          @db.VarChar(1000)
+  recordedByUserId String?          @map("recorded_by_user_id") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  tenant  Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  member  Member?           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  visitor Visitor?          @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, memberId])
+  @@unique([sessionId, visitorId])
+  @@index([tenantId, checkedInAt])
+  @@index([memberId])
+  @@index([visitorId])
+  @@map("attendance_records")
+}
+
+/// A ministry or operational team: ushering, choir, media, outreach. Distinct
+/// from the later `MINISTRY_*` permission family (community grouping).
+model Department {
+  id             String         @id @default(uuid()) @db.Uuid
+  tenantId       String         @map("tenant_id") @db.Uuid
+  name           String         @db.VarChar(120)
+  kind           DepartmentKind @default(MINISTRY)
+  description    String?        @db.Text
+  leaderMemberId String?        @map("leader_member_id") @db.Uuid
+  meetingDay     String?        @map("meeting_day") @db.VarChar(9)
+  meetingTime    String?        @map("meeting_time") @db.VarChar(5)
+  location       String?        @db.VarChar(160)
+  isActive       Boolean        @default(true) @map("is_active")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  members            DepartmentMember[]
+  volunteerRoles     VolunteerRole[]
+  attendanceSessions AttendanceSession[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, kind, isActive])
+  @@map("departments")
+}
+
+model DepartmentMember {
+  id           String                 @id @default(uuid()) @db.Uuid
+  tenantId     String                 @map("tenant_id") @db.Uuid
+  departmentId String                 @map("department_id") @db.Uuid
+  memberId     String                 @map("member_id") @db.Uuid
+  role         DepartmentMemberRole   @default(MEMBER)
+  status       DepartmentMemberStatus @default(ACTIVE)
+  joinedAt     DateTime               @default(now()) @map("joined_at")
+  leftAt       DateTime?              @map("left_at")
+  createdAt    DateTime               @default(now()) @map("created_at")
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  member     Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, memberId])
+  @@index([tenantId])
+  @@index([memberId])
+  @@map("department_members")
+}
+
+/// A job the church needs filled. A role can exist unfilled, which makes
+/// "we need three more ushers on Sunday" a queryable fact.
+model VolunteerRole {
+  id                      String              @id @default(uuid()) @db.Uuid
+  tenantId                String              @map("tenant_id") @db.Uuid
+  name                    String              @db.VarChar(120)
+  description             String?             @db.Text
+  departmentId            String?             @map("department_id") @db.Uuid
+  commitment              VolunteerCommitment @default(WEEKLY)
+  requiredCount           Int                 @default(1) @map("required_count")
+  requiresBackgroundCheck Boolean             @default(false) @map("requires_background_check")
+  isActive                Boolean             @default(true) @map("is_active")
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  department  Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignments VolunteerAssignment[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, isActive])
+  @@index([departmentId])
+  @@map("volunteer_roles")
+}
+
+model VolunteerAssignment {
+  id                String                    @id @default(uuid()) @db.Uuid
+  tenantId          String                    @map("tenant_id") @db.Uuid
+  roleId            String                    @map("role_id") @db.Uuid
+  memberId          String                    @map("member_id") @db.Uuid
+  status            VolunteerAssignmentStatus @default(ACTIVE)
+  startsAt          DateTime?                 @map("starts_at")
+  endsAt            DateTime?                 @map("ends_at")
+  backgroundCheckAt DateTime?                 @map("background_check_at")
+  notes             String?                   @db.VarChar(1000)
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role   VolunteerRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  member Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, memberId])
+  @@index([tenantId, status])
+  @@index([memberId])
+  @@map("volunteer_assignments")
+}
+
+/// Append-only story of a person inside the church, written as things happen
+/// rather than assembled at read time. It is the substrate the AI summary reads.
+model MemberTimelineEntry {
+  id                 String            @id @default(uuid()) @db.Uuid
+  tenantId           String            @map("tenant_id") @db.Uuid
+  memberId           String            @map("member_id") @db.Uuid
+  type               TimelineEventType
+  occurredAt         DateTime          @map("occurred_at")
+  title              String            @db.VarChar(160)
+  summary            String?           @db.Text
+  metadata           Json              @default("{}") @db.JsonB
+  sourceResourceType String?           @map("source_resource_type") @db.VarChar(64)
+  sourceResourceId   String?           @map("source_resource_id") @db.VarChar(128)
+  dedupeKey          String?           @map("dedupe_key") @db.VarChar(160)
+  createdByUserId    String?           @map("created_by_user_id") @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, dedupeKey])
+  @@index([tenantId, memberId, occurredAt])
+  @@index([tenantId, type])
+  @@map("member_timeline_entries")
+}
+
+/// Document metadata, kept separately from the bytes. The bytes live behind a
+/// storage port (local disk in development, object storage in production).
+model MemberDocument {
+  id               String           @id @default(uuid()) @db.Uuid
+  tenantId         String           @map("tenant_id") @db.Uuid
+  memberId         String           @map("member_id") @db.Uuid
+  title            String           @db.VarChar(200)
+  category         DocumentCategory @default(OTHER)
+  status           DocumentStatus   @default(PENDING)
+  fileName         String           @map("file_name") @db.VarChar(255)
+  contentType      String           @map("content_type") @db.VarChar(120)
+  sizeBytes        Int              @default(0) @map("size_bytes")
+  checksum         String?          @db.VarChar(128)
+  storageKey       String?          @map("storage_key") @db.VarChar(512)
+  notes            String?          @db.Text
+  expiresAt        DateTime?        @map("expires_at")
+  uploadedByUserId String?          @map("uploaded_by_user_id") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, memberId, category])
+  @@index([tenantId, status])
+  @@map("member_documents")
+}
+
+/// Persisted summary projection. Records the provider, model, and the member
+/// data version it saw, so a stale summary is detectable and regeneration is
+/// explainable.
+model MemberAiSummary {
+  id            String              @id @default(uuid()) @db.Uuid
+  tenantId      String              @map("tenant_id") @db.Uuid
+  memberId      String              @unique @map("member_id") @db.Uuid
+  status        SummaryStatus       @default(FRESH)
+  provider      SummaryProviderKind @default(DETERMINISTIC)
+  model         String?             @db.VarChar(120)
+  content       String?             @db.Text
+  highlights    String[]            @default([])
+  facts         Json?               @db.JsonB
+  generatedAt   DateTime?           @map("generated_at")
+  sourceVersion Int                 @default(0) @map("source_version")
+  error         String?             @db.Text
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("member_ai_summaries")
+}
+
+model MemberImportJob {
+  id              String             @id @default(uuid()) @db.Uuid
+  tenantId        String             @map("tenant_id") @db.Uuid
+  status          MemberImportStatus @default(READY)
+  fileName        String?            @map("file_name") @db.VarChar(255)
+  totalRows       Int                @default(0) @map("total_rows")
+  validRows       Int                @default(0) @map("valid_rows")
+  invalidRows     Int                @default(0) @map("invalid_rows")
+  importedRows    Int                @default(0) @map("imported_rows")
+  skippedRows     Int                @default(0) @map("skipped_rows")
+  duplicateRows   Int                @default(0) @map("duplicate_rows")
+  resumeIndex     Int                @default(0) @map("resume_index")
+  rows            Json               @default("[]") @db.JsonB
+  issues          Json               @default("[]") @db.JsonB
+  createdByUserId String?            @map("created_by_user_id") @db.Uuid
+  startedAt       DateTime?          @map("started_at")
+  completedAt     DateTime?          @map("completed_at")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("MemberImportsCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, status])
+  @@map("member_import_jobs")
+}
+
+/// An item of institutional memory. This table is a superset of
+/// `member_documents`: a document uploaded against a member keeps living in the
+/// membership domain, and the engine links to it (origin MEMBERSHIP_DOCUMENT,
+/// source_resource_* pointing back) rather than moving or copying the bytes.
+///
+/// `current_version_id` is intentionally a bare UUID column with no foreign key.
+/// The version row and the artifact are written in one transaction and the
+/// pointer is set afterwards, so a hard FK would force a deferrable constraint
+/// for no benefit; `memory_artifact_versions.artifact_id` already guarantees the
+/// version belongs to this artifact.
+model MemoryArtifact {
+  id                    String               @id @default(uuid()) @db.Uuid
+  tenantId              String               @map("tenant_id") @db.Uuid
+  kind                  MemoryArtifactKind   @default(OTHER)
+  status                MemoryArtifactStatus @default(PENDING)
+  origin                MemoryArtifactOrigin @default(UPLOAD)
+  title                 String               @db.VarChar(200)
+  description           String?              @db.Text
+  capturedAt            DateTime?            @map("captured_at")
+  datePrecision         CaptureDatePrecision @default(UNKNOWN) @map("date_precision")
+  sourceResourceType    String?              @map("source_resource_type") @db.VarChar(60)
+  sourceResourceId      String?              @map("source_resource_id") @db.Uuid
+  currentVersionId      String?              @map("current_version_id") @db.Uuid
+  duplicateOfArtifactId String?              @map("duplicate_of_artifact_id") @db.Uuid
+  createdByUserId       String?              @map("created_by_user_id") @db.Uuid
+  archivedAt            DateTime?            @map("archived_at")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  tenant   Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions MemoryArtifactVersion[]
+  links    MemoryArtifactLink[]
+  tags     MemoryArtifactTag[]
+  jobs     MemoryProcessingJob[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, kind, status])
+  @@index([tenantId, capturedAt])
+  @@index([tenantId, status])
+  @@index([sourceResourceType, sourceResourceId])
+  @@map("memory_artifacts")
+}
+
+/// An immutable, content-addressed set of bytes. Re-uploading corrected metadata
+/// never destroys the original scan: it appends a version, and derived data
+/// (text, transcript, embeddings) is always tied to the version that produced it.
+model MemoryArtifactVersion {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  artifactId          String   @map("artifact_id") @db.Uuid
+  version             Int
+  sha256              String   @db.VarChar(64)
+  sizeBytes           BigInt   @map("size_bytes")
+  fileName            String   @map("file_name") @db.VarChar(255)
+  declaredContentType String   @map("declared_content_type") @db.VarChar(120)
+  detectedContentType String?  @map("detected_content_type") @db.VarChar(120)
+  storageKey          String   @map("storage_key") @db.VarChar(512)
+  isCurrent           Boolean  @default(true) @map("is_current")
+  createdByUserId     String?  @map("created_by_user_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  artifact MemoryArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([artifactId, version])
+  @@index([tenantId, sha256])
+  @@index([tenantId, createdAt])
+  @@index([artifactId, isCurrent])
+  @@map("memory_artifact_versions")
+}
+
+/// Attaches an artifact to any other resource (a member, a family, a department,
+/// a sermon). One table with a type discriminator keeps "all memory about this
+/// person" a single indexed query and lets new link targets be added without a
+/// schema change. `link_id` is a bare UUID because the target table varies.
+model MemoryArtifactLink {
+  id              String         @id @default(uuid()) @db.Uuid
+  tenantId        String         @map("tenant_id") @db.Uuid
+  artifactId      String         @map("artifact_id") @db.Uuid
+  linkType        MemoryLinkType @map("link_type")
+  linkId          String         @map("link_id") @db.Uuid
+  createdByUserId String?        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  artifact MemoryArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([artifactId, linkType, linkId])
+  @@index([tenantId, linkType, linkId])
+  @@map("memory_artifact_links")
+}
+
+/// Free-form labels for browsing and filtering. Tags are deliberately separate
+/// from the curated taxonomy in later phases: a tag is whatever a volunteer types,
+/// a category is something the engine assigns and an administrator can trust.
+model MemoryArtifactTag {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  artifactId String   @map("artifact_id") @db.Uuid
+  tag        String   @db.VarChar(64)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  artifact MemoryArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([artifactId, tag])
+  @@index([tenantId, tag])
+  @@map("memory_artifact_tags")
+}
+
+/// Durable outbox. A row is inserted in the same transaction as the state change
+/// that produced it, then published to the broker by a relay. This is the
+/// transactional guarantee that an artifact is never saved without its
+/// `memory.artifact.created` event becoming visible, and vice versa.
+///
+/// `tenant_id` is nullable to allow platform-level events, and the table is
+/// readable by the relay under the platform-admin RLS bypass.
+model OutboxEvent {
+  id            String            @id @default(uuid()) @db.Uuid
+  tenantId      String?           @map("tenant_id") @db.Uuid
+  eventType     String            @map("event_type") @db.VarChar(120)
+  aggregateType String            @map("aggregate_type") @db.VarChar(80)
+  aggregateId   String            @map("aggregate_id") @db.Uuid
+  payload       Json              @default("{}") @db.JsonB
+  headers       Json              @default("{}") @db.JsonB
+  status        OutboxEventStatus @default(PENDING)
+  attempts      Int               @default(0)
+  availableAt   DateTime          @default(now()) @map("available_at")
+  lastError     String?           @map("last_error") @db.Text
+  publishedAt   DateTime?         @map("published_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([status, availableAt])
+  @@index([tenantId, createdAt])
+  @@index([aggregateType, aggregateId])
+  @@map("outbox_events")
+}
+
+/// A unit of asynchronous work. Jobs are claimed by a worker with
+/// `FOR UPDATE SKIP LOCKED`, retried with a bounded attempt count, and — crucially
+/// — moved to BLOCKED when a required capability (OCR, speech-to-text) is not
+/// configured. A blocked job is visible and actionable, never silently "done".
+///
+/// The table is shared by the archive worker (which acts on `artifact_id`) and the
+/// indexing worker (which acts on `document_id`). It was generalised rather than
+/// duplicated so there is one place that owns claiming, backoff and blocked-state
+/// semantics; each worker claims only rows belonging to its own subject, so the
+/// two never race for the same job.
+model MemoryProcessingJob {
+  id            String          @id @default(uuid()) @db.Uuid
+  tenantId      String          @map("tenant_id") @db.Uuid
+  artifactId    String?         @map("artifact_id") @db.Uuid
+  documentId    String?         @map("document_id") @db.Uuid
+  versionId     String?         @map("version_id") @db.Uuid
+  type          MemoryJobType
+  status        MemoryJobStatus @default(PENDING)
+  priority      Int             @default(100)
+  attempts      Int             @default(0)
+  maxAttempts   Int             @default(5) @map("max_attempts")
+  availableAt   DateTime        @default(now()) @map("available_at")
+  startedAt     DateTime?       @map("started_at")
+  completedAt   DateTime?       @map("completed_at")
+  provider      String?         @db.VarChar(60)
+  blockedReason String?         @map("blocked_reason") @db.VarChar(120)
+  lastError     String?         @map("last_error") @db.Text
+  result        Json?           @db.JsonB
+  dedupeKey     String?         @map("dedupe_key") @db.VarChar(200)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  artifact MemoryArtifact? @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  document AiDocument?     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([status, availableAt, priority])
+  @@index([tenantId, artifactId])
+  @@index([tenantId, documentId])
+  @@index([tenantId, type, status])
+  @@index([dedupeKey])
+  @@map("memory_processing_jobs")
+}
+
+// Zion AI ---------------------------------------------------------------------
+// The search index. Zion AI keeps no copy of a church's records; it holds a
+// projection of them — the text, where it came from, and the vectors — with a
+// link back to the source row so a citation can always be opened.
+
+/// Which domain row a document was projected from.
+enum AiSourceType {
+  MEMORY_ARTIFACT
+  SERMON
+  MEETING
+  MEMBER_TIMELINE
+  PRAYER_REQUEST
+  EVENT
+  MEMBER
+}
+
+/// How sensitive a document is. Independent of the permission required to read
+/// it: the level lets an administrator reason about the corpus as a whole.
+enum AiSensitivity {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+/// The stages a projected document moves through to become searchable.
+enum AiDocumentStatus {
+  PENDING
+  PROCESSING
+  INDEXED
+  PARTIAL
+  FAILED
+  STALE
+}
+
+/// The registry of embedding models a workspace has used. A chunk's vector is
+/// keyed by model so that changing models is a re-embed, not a silent mixed
+/// index: two vectors produced by different models are never compared.
+model AiEmbeddingModel {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  provider   String   @db.VarChar(60)
+  model      String   @db.VarChar(160)
+  revision   String   @default("") @db.VarChar(80)
+  dimensions Int
+  metric     String   @default("cosine") @db.VarChar(20)
+  isDefault  Boolean  @default(false) @map("is_default")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  embeddings AiChunkEmbedding[]
+
+  @@unique([tenantId, provider, model, revision])
+  @@index([tenantId, isActive])
+  @@map("ai_embedding_models")
+}
+
+/// One source row projected into the index. `versionKey` is a string so that a
+/// source without versions still has a stable identity: the unique key is
+/// `(tenant, sourceType, sourceId, versionKey)` and a versionless source uses
+/// the literal `"none"`. `contentHash` is the hash of the exact text that was
+/// chunked, so a re-index of unchanged content is skipped.
+model AiDocument {
+  id                 String           @id @default(uuid()) @db.Uuid
+  tenantId           String           @map("tenant_id") @db.Uuid
+  sourceType         AiSourceType     @map("source_type")
+  sourceId           String           @map("source_id") @db.Uuid
+  sourceVersionId    String?          @map("source_version_id") @db.Uuid
+  versionKey         String           @map("version_key") @db.VarChar(64)
+  title              String           @db.VarChar(300)
+  kind               String?          @db.VarChar(60)
+  content            String?          @db.Text
+  contentHash        String           @map("content_hash") @db.VarChar(64)
+  language           String?          @db.VarChar(16)
+  status             AiDocumentStatus @default(PENDING)
+  sensitivity        AiSensitivity    @default(INTERNAL)
+  requiredPermission String?          @map("required_permission") @db.VarChar(60)
+  tags               String[]         @default([])
+  occurredAt         DateTime?        @map("occurred_at")
+  charCount          Int              @default(0) @map("char_count")
+  chunkCount         Int              @default(0) @map("chunk_count")
+  tokenCount         Int              @default(0) @map("token_count")
+  embeddingModelId   String?          @map("embedding_model_id") @db.Uuid
+  indexedAt          DateTime?        @map("indexed_at")
+  lastError          String?          @map("last_error") @db.Text
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  tenant Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  chunks AiChunk[]
+  jobs   MemoryProcessingJob[]
+
+  @@unique([tenantId, sourceType, sourceId, versionKey])
+  @@index([tenantId, status])
+  @@index([tenantId, sourceType, sourceId])
+  @@index([tenantId, contentHash])
+  @@map("ai_documents")
+}
+
+/// A passage of a document, sized so that a citation quotes something that reads
+/// on its own. `tsv` is a generated full-text column, maintained by PostgreSQL;
+/// it is declared `Unsupported` because the client never reads or writes it.
+model AiChunk {
+  id          String                   @id @default(uuid()) @db.Uuid
+  tenantId    String                   @map("tenant_id") @db.Uuid
+  documentId  String                   @map("document_id") @db.Uuid
+  ordinal     Int
+  content     String                   @db.Text
+  contentHash String                   @map("content_hash") @db.VarChar(64)
+  tokenCount  Int                      @map("token_count")
+  charStart   Int?                     @map("char_start")
+  charEnd     Int?                     @map("char_end")
+  page        Int?
+  startMs     Int?                     @map("start_ms")
+  endMs       Int?                     @map("end_ms")
+  tsv         Unsupported("tsvector")? @default(dbgenerated("to_tsvector('simple'::regconfig, COALESCE(content, ''::text))")) @map("tsv")
+  createdAt   DateTime                 @default(now()) @map("created_at")
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  document   AiDocument         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  embeddings AiChunkEmbedding[]
+
+  @@unique([documentId, ordinal])
+  @@index([tenantId, documentId])
+  @@index([tsv], type: Gin)
+  @@map("ai_chunks")
+}
+
+/// A chunk's vector for one embedding model. The width is fixed by the storage
+/// layer (see AI_VECTOR_DIMENSIONS); a model of a different width cannot be
+/// indexed. The unique key guarantees at most one vector per chunk per model.
+model AiChunkEmbedding {
+  id        String                      @id @default(uuid()) @db.Uuid
+  tenantId  String                      @map("tenant_id") @db.Uuid
+  chunkId   String                      @map("chunk_id") @db.Uuid
+  modelId   String                      @map("model_id") @db.Uuid
+  embedding Unsupported("vector")
+  createdAt DateTime                    @default(now()) @map("created_at")
+
+  tenant Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  chunk  AiChunk          @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+  model  AiEmbeddingModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@unique([chunkId, modelId])
+  @@index([tenantId, modelId])
+  // Expression indexes and HNSW cannot be represented by Prisma; the index is
+  // declared with its database name so introspection and drift checks agree.
+  // The width lives in the migration (`vector(1536)`), not in the schema.
+  @@index([embedding], map: "ai_chunk_embeddings_embedding_hnsw_idx")
+  @@map("ai_chunk_embeddings")
+}
+
+// Sermon platform -------------------------------------------------------------
+// Publishing and the study surface. Bytes stay in Memory; derived text is
+// produced by Zion AI ports. A sermon never owns media of its own.
+
+enum SermonStatus {
+  DRAFT
+  PROCESSING
+  READY
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SermonVisibility {
+  PRIVATE
+  MEMBERS
+  PUBLIC
+}
+
+enum SermonMediaKind {
+  AUDIO
+  VIDEO
+  TEXT
+  NONE
+}
+
+enum SermonDerivedStatus {
+  NONE
+  PENDING
+  READY
+  PARTIAL
+  BLOCKED
+  FAILED
+}
+
+enum SermonJobType {
+  TRANSCRIBE
+  SCRIPTURE
+  SPEAKER
+  SUMMARIZE
+  CHAPTERIZE
+  TAG
+  INDEX
+}
+
+enum SermonJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  BLOCKED
+  FAILED
+  CANCELLED
+}
+
+enum SermonTranscriptSource {
+  DETERMINISTIC
+  STT
+  MANUAL
+}
+
+model SermonSeries {
+  id          String           @id @default(uuid()) @db.Uuid
+  tenantId    String           @map("tenant_id") @db.Uuid
+  slug        String           @db.VarChar(40)
+  title       String           @db.VarChar(200)
+  subtitle    String?          @db.VarChar(240)
+  description String?          @db.Text
+  visibility  SermonVisibility @default(MEMBERS)
+  startsOn    DateTime?        @map("starts_on") @db.Date
+  endsOn      DateTime?        @map("ends_on") @db.Date
+  archivedAt  DateTime?        @map("archived_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sermons Sermon[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, createdAt])
+  @@map("sermon_series")
+}
+
+model Sermon {
+  id               String              @id @default(uuid()) @db.Uuid
+  tenantId         String              @map("tenant_id") @db.Uuid
+  seriesId         String?             @map("series_id") @db.Uuid
+  slug             String              @db.VarChar(40)
+  title            String              @db.VarChar(200)
+  subtitle         String?             @db.VarChar(240)
+  description      String?             @db.Text
+  speakerName      String?             @map("speaker_name") @db.VarChar(120)
+  speakerMemberId  String?             @map("speaker_member_id") @db.Uuid
+  preachedAt       DateTime?           @map("preached_at")
+  location         String?             @db.VarChar(200)
+  language         String              @default("en") @db.VarChar(16)
+  status           SermonStatus        @default(DRAFT)
+  visibility       SermonVisibility    @default(MEMBERS)
+  mediaKind        SermonMediaKind     @default(NONE) @map("media_kind")
+  mediaArtifactId  String?             @map("media_artifact_id") @db.Uuid
+  durationMs       Int?                @map("duration_ms")
+  transcriptStatus SermonDerivedStatus @default(NONE) @map("transcript_status")
+  summaryStatus    SermonDerivedStatus @default(NONE) @map("summary_status")
+  publishedAt      DateTime?           @map("published_at")
+  archivedAt       DateTime?           @map("archived_at")
+  createdByUserId  String?             @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  series      SermonSeries?             @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  tags        SermonTag[]
+  transcripts SermonTranscript[]
+  chapters    SermonChapter[]
+  scriptures  SermonScripture[]
+  insight     SermonInsight?
+  notes       SermonNote[]
+  shares      SermonShare[]
+  jobs        SermonProcessingJob[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, preachedAt])
+  @@index([tenantId, seriesId])
+  @@index([tenantId, visibility, status])
+  @@index([tenantId, speakerName])
+  @@index([mediaArtifactId])
+  @@map("sermons")
+}
+
+model SermonTag {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  sermonId  String   @map("sermon_id") @db.Uuid
+  tag       String   @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sermon Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@unique([sermonId, tag])
+  @@index([tenantId, tag])
+  @@map("sermon_tags")
+}
+
+model SermonTranscript {
+  id        String                 @id @default(uuid()) @db.Uuid
+  tenantId  String                 @map("tenant_id") @db.Uuid
+  sermonId  String                 @map("sermon_id") @db.Uuid
+  version   Int
+  language  String                 @db.VarChar(16)
+  status    SermonDerivedStatus    @default(PENDING)
+  source    SermonTranscriptSource @default(DETERMINISTIC)
+  text      String                 @db.Text
+  isCurrent Boolean                @default(true) @map("is_current")
+  createdAt DateTime               @default(now()) @map("created_at")
+
+  tenant   Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sermon   Sermon                     @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+  segments SermonTranscriptSegment[]
+
+  @@unique([sermonId, version])
+  @@index([tenantId, sermonId, isCurrent])
+  @@map("sermon_transcripts")
+}
+
+model SermonTranscriptSegment {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  transcriptId  String   @map("transcript_id") @db.Uuid
+  ordinal       Int
+  startMs       Int?     @map("start_ms")
+  endMs         Int?     @map("end_ms")
+  speakerLabel  String?  @map("speaker_label") @db.VarChar(120)
+  text          String   @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  tenant     Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transcript SermonTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+
+  @@unique([transcriptId, ordinal])
+  @@index([tenantId, transcriptId])
+  @@map("sermon_transcript_segments")
+}
+
+model SermonChapter {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  sermonId  String   @map("sermon_id") @db.Uuid
+  ordinal   Int
+  startMs   Int?     @map("start_ms")
+  endMs     Int?     @map("end_ms")
+  title     String   @db.VarChar(200)
+  summary   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sermon Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@unique([sermonId, ordinal])
+  @@index([tenantId, sermonId])
+  @@map("sermon_chapters")
+}
+
+model SermonScripture {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  sermonId   String   @map("sermon_id") @db.Uuid
+  book       String   @db.VarChar(40)
+  chapter    Int
+  verseStart Int      @map("verse_start")
+  verseEnd   Int      @map("verse_end")
+  reference  String   @db.VarChar(80)
+  startMs    Int?     @map("start_ms")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sermon Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, sermonId])
+  @@index([tenantId, book, chapter])
+  @@map("sermon_scriptures")
+}
+
+model SermonInsight {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  sermonId      String   @unique @map("sermon_id") @db.Uuid
+  summary       String?  @db.Text
+  keyPoints     String[] @default([]) @map("key_points")
+  socialCaption String?  @map("social_caption") @db.Text
+  provider      String?  @db.VarChar(60)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sermon Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@map("sermon_insights")
+}
+
+model SermonNote {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  sermonId    String   @map("sermon_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  body        String   @db.Text
+  timestampMs Int?     @map("timestamp_ms")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sermon Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, sermonId, userId])
+  @@map("sermon_notes")
+}
+
+model SermonShare {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  sermonId  String    @map("sermon_id") @db.Uuid
+  token     String    @unique @db.VarChar(64)
+  expiresAt DateTime? @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdByUserId String? @map("created_by_user_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sermon Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, sermonId])
+  @@map("sermon_shares")
+}
+
+model SermonProcessingJob {
+  id            String          @id @default(uuid()) @db.Uuid
+  tenantId      String          @map("tenant_id") @db.Uuid
+  sermonId      String          @map("sermon_id") @db.Uuid
+  type          SermonJobType
+  status        SermonJobStatus @default(PENDING)
+  priority      Int             @default(100)
+  attempts      Int             @default(0)
+  maxAttempts   Int             @default(5) @map("max_attempts")
+  availableAt   DateTime        @default(now()) @map("available_at")
+  startedAt     DateTime?       @map("started_at")
+  completedAt   DateTime?       @map("completed_at")
+  provider      String?         @db.VarChar(60)
+  blockedReason String?         @map("blocked_reason") @db.VarChar(120)
+  lastError     String?         @map("last_error") @db.Text
+  result        Json?           @db.JsonB
+  dedupeKey     String?         @unique @map("dedupe_key") @db.VarChar(200)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sermon Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@index([status, availableAt, priority])
+  @@index([tenantId, sermonId])
+  @@index([tenantId, type, status])
+  @@map("sermon_processing_jobs")
 }
