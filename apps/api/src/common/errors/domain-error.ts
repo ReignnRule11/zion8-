@@ -82,6 +82,22 @@ const DEFAULT_STATUS: Partial<Record<ErrorCode, number>> = {
   [ErrorCode.MEMORY_PROCESSING_BLOCKED]: 409,
   [ErrorCode.MEMORY_SEARCH_UNAVAILABLE]: 503,
   [ErrorCode.MEMORY_ANSWER_UNAVAILABLE]: 503,
+  // Zion AI. A missing conversation, message or summary is 404; a citation that
+  // does not resolve, an unindexable source or an approved summary is 409; an
+  // unavailable model, provider or corpus is 503; exhaustion is 429.
+  [ErrorCode.AI_DISABLED]: 503,
+  [ErrorCode.AI_SEARCH_UNAVAILABLE]: 503,
+  [ErrorCode.AI_ANSWER_UNAVAILABLE]: 503,
+  [ErrorCode.AI_CITATION_INVALID]: 409,
+  [ErrorCode.AI_CONVERSATION_NOT_FOUND]: 404,
+  [ErrorCode.AI_MESSAGE_NOT_FOUND]: 404,
+  [ErrorCode.AI_INDEX_NOT_READY]: 409,
+  [ErrorCode.AI_SOURCE_NOT_INDEXABLE]: 409,
+  [ErrorCode.AI_EMBEDDING_MODEL_UNAVAILABLE]: 503,
+  [ErrorCode.AI_QUOTA_EXCEEDED]: 429,
+  [ErrorCode.AI_INSIGHT_COHORT_TOO_SMALL]: 409,
+  [ErrorCode.AI_SUMMARY_NOT_FOUND]: 404,
+  [ErrorCode.AI_SUMMARY_ALREADY_APPROVED]: 409,
   [ErrorCode.RESOURCE_NOT_FOUND]: 404,
   [ErrorCode.RESOURCE_CONFLICT]: 409,
   [ErrorCode.RATE_LIMITED]: 429,
@@ -222,9 +238,7 @@ export class DomainError extends Error {
     ]);
   }
 
-  static onboardingAlreadyCompleted(
-    message = 'Onboarding is already complete',
-  ): DomainError {
+  static onboardingAlreadyCompleted(message = 'Onboarding is already complete'): DomainError {
     return new DomainError(ErrorCode.ONBOARDING_ALREADY_COMPLETED, message);
   }
 
@@ -246,7 +260,9 @@ export class DomainError extends Error {
     return new DomainError(ErrorCode.INVITATION_ALREADY_EXISTS, message);
   }
 
-  static subscriptionPlanUnavailable(message = 'That subscription plan is not available'): DomainError {
+  static subscriptionPlanUnavailable(
+    message = 'That subscription plan is not available',
+  ): DomainError {
     return new DomainError(ErrorCode.SUBSCRIPTION_PLAN_UNAVAILABLE, message);
   }
 

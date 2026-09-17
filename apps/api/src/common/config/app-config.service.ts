@@ -196,6 +196,74 @@ export class AppConfigService {
     };
   }
 
+  get ai(): {
+    enabled: boolean;
+    embedding: {
+      provider: string;
+      model: string;
+      baseUrl: string;
+      apiKey: string;
+      dimensions: number;
+    };
+    chat: {
+      provider: string;
+      model: string;
+      baseUrl: string;
+      apiKey: string;
+    };
+    retrieval: {
+      topK: number;
+      candidates: number;
+      citationMinSupport: number;
+    };
+    queryTimeoutMs: number;
+    insightMinCohort: number;
+  } {
+    return {
+      enabled: this.env.AI_ENABLED,
+      embedding: {
+        provider: this.env.AI_EMBEDDING_PROVIDER,
+        model: this.env.AI_EMBEDDING_MODEL,
+        baseUrl: this.env.AI_EMBEDDING_BASE_URL,
+        apiKey: this.env.AI_EMBEDDING_API_KEY,
+        dimensions: this.env.AI_EMBEDDING_DIMENSIONS,
+      },
+      chat: {
+        provider: this.env.AI_CHAT_PROVIDER,
+        model: this.env.AI_CHAT_MODEL,
+        baseUrl: this.env.AI_CHAT_BASE_URL,
+        apiKey: this.env.AI_CHAT_API_KEY,
+      },
+      retrieval: {
+        topK: this.env.AI_RETRIEVAL_TOP_K,
+        candidates: this.env.AI_RETRIEVAL_CANDIDATES,
+        citationMinSupport: this.env.AI_CITATION_MIN_SUPPORT,
+      },
+      queryTimeoutMs: this.env.AI_QUERY_TIMEOUT_MS,
+      insightMinCohort: this.env.AI_INSIGHT_MIN_COHORT,
+    };
+  }
+
+  /**
+   * Whether an optional AI runtime is configured. Chat is separate from
+   * embedding because retrieval does not depend on generation: a corpus can be
+   * indexed and searched with no chat provider at all.
+   */
+  get aiCapabilities(): { chat: boolean; embeddingHttp: boolean } {
+    return {
+      chat: this.env.AI_CHAT_BASE_URL.length > 0,
+      embeddingHttp: this.env.AI_EMBEDDING_BASE_URL.length > 0,
+    };
+  }
+
+  get aiWorker(): { enabled: boolean; intervalMs: number; batchSize: number } {
+    return {
+      enabled: this.env.AI_WORKER_ENABLED && !this.isTest,
+      intervalMs: this.env.AI_WORKER_INTERVAL_MS,
+      batchSize: this.env.AI_WORKER_BATCH_SIZE,
+    };
+  }
+
   get notifications(): {
     emailFrom: string;
     resendApiKey: string;

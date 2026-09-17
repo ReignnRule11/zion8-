@@ -19,7 +19,10 @@ import {
 import { DomainError } from '../../common/errors/domain-error';
 import { AppConfigService } from '../../common/config/app-config.service';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { OBJECT_STORAGE, type ObjectStorage } from '../../infrastructure/storage/object-storage.port';
+import {
+  OBJECT_STORAGE,
+  type ObjectStorage,
+} from '../../infrastructure/storage/object-storage.port';
 import { OutboxService } from '../../infrastructure/events/outbox.service';
 import {
   checksumOf,
@@ -384,7 +387,9 @@ export class ArtifactService {
     await this.findRow(tenantId, artifactId);
 
     const row = await this.prisma.withTenant(tenantId, async (tx) => {
-      const link = await tx.memoryArtifactLink.findFirst({ where: { tenantId, artifactId, id: linkId } });
+      const link = await tx.memoryArtifactLink.findFirst({
+        where: { tenantId, artifactId, id: linkId },
+      });
       if (!link) {
         throw new DomainError('MEMORY_LINK_NOT_FOUND', 'That link could not be found');
       }
@@ -410,7 +415,10 @@ export class ArtifactService {
   ): Promise<MemoryReprocessResponse> {
     const artifact = await this.findRow(tenantId, artifactId);
     if (!artifact.currentVersionId) {
-      throw new DomainError('MEMORY_ARTIFACT_VERSION_NOT_FOUND', 'This artifact has no stored version');
+      throw new DomainError(
+        'MEMORY_ARTIFACT_VERSION_NOT_FOUND',
+        'This artifact has no stored version',
+      );
     }
 
     const stages = input.stages ?? defaultStages(artifact.kind);
@@ -461,7 +469,7 @@ export class ArtifactService {
       return results;
     });
 
-    return { artifactId, jobs: jobs.map(toJobSummary) };
+    return { artifactId, jobs: jobs.map(toArtifactJobSummary) };
   }
 
   async listJobs(tenantId: string, artifactId: string): Promise<MemoryJobSummary[]> {
@@ -472,7 +480,7 @@ export class ArtifactService {
         orderBy: { createdAt: 'asc' },
       }),
     );
-    return rows.map(toJobSummary);
+    return rows.map(toArtifactJobSummary);
   }
 
   async download(
@@ -570,6 +578,17 @@ function pickVersion(
     throw new DomainError('MEMORY_ARTIFACT_UNAVAILABLE', 'This memory has no stored file');
   }
   return current;
+}
+
+/**
+ * The processing-jobs table is shared with the indexing worker, so `artifact_id`
+ * is nullable at the type level. Every job read here was filtered by that
+ * column, which is what makes the narrowing safe.
+ */
+function toArtifactJobSummary(
+  row: Omit<Parameters<typeof toJobSummary>[0], 'artifactId'> & { artifactId: string | null },
+): MemoryJobSummary {
+  return toJobSummary({ ...row, artifactId: row.artifactId as string });
 }
 
 function statusFilter(query: MemoryArtifactListQuery): Prisma.MemoryArtifactWhereInput {

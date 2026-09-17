@@ -1,3 +1,4 @@
+import { AI_VECTOR_DIMENSIONS } from '@zion8/contracts';
 import { z } from 'zod';
 
 const commaSeparated = z
@@ -107,6 +108,39 @@ export const envSchema = z.object({
   // skipped.
   MEMORY_OCR_ENDPOINT: z.string().default(''),
   MEMORY_STT_ENDPOINT: z.string().default(''),
+
+  // Zion AI. The default embedding provider is a deterministic local projection
+  // and the default answer provider is extractive, so retrieval and grounded
+  // answers work with no key. An HTTP provider is opt-in per workspace.
+  AI_ENABLED: booleanString('true'),
+  AI_EMBEDDING_PROVIDER: z.string().default('deterministic'),
+  AI_EMBEDDING_MODEL: z.string().default(''),
+  AI_EMBEDDING_BASE_URL: z.string().default(''),
+  AI_EMBEDDING_API_KEY: z.string().default(''),
+  // Must equal the width of the stored vector column (AI_VECTOR_DIMENSIONS).
+  // The assertion is deliberate: a mismatch would only surface as a failed
+  // insert at index time, far from the cause.
+  AI_EMBEDDING_DIMENSIONS: z.coerce
+    .number()
+    .int()
+    .refine((value) => value === AI_VECTOR_DIMENSIONS, {
+      message: `AI_EMBEDDING_DIMENSIONS must be ${AI_VECTOR_DIMENSIONS}; changing it requires a migration`,
+    })
+    .default(AI_VECTOR_DIMENSIONS),
+  AI_CHAT_PROVIDER: z.string().default(''),
+  AI_CHAT_MODEL: z.string().default(''),
+  AI_CHAT_BASE_URL: z.string().default(''),
+  AI_CHAT_API_KEY: z.string().default(''),
+  AI_RETRIEVAL_TOP_K: z.coerce.number().int().min(1).max(50).default(10),
+  AI_RETRIEVAL_CANDIDATES: z.coerce.number().int().min(1).max(200).default(50),
+  // Minimum share of claims that must carry a valid citation before an answer is
+  // presented as fact. Below the threshold the answer abstains. See ADR 0002.
+  AI_CITATION_MIN_SUPPORT: z.coerce.number().min(0).max(1).default(0.5),
+  AI_QUERY_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
+  AI_INSIGHT_MIN_COHORT: z.coerce.number().int().min(3).max(50).default(5),
+  AI_WORKER_ENABLED: booleanString('true'),
+  AI_WORKER_INTERVAL_MS: z.coerce.number().int().min(250).default(5000),
+  AI_WORKER_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(10),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
