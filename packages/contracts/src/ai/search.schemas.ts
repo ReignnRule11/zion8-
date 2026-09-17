@@ -114,6 +114,25 @@ export const MAX_SEARCH_LIMIT = 50;
 export const DEFAULT_SEARCH_LIMIT = 10;
 
 /**
+ * The width of the stored vector column. pgvector can only build an approximate
+ * nearest-neighbour index on a column of known width, so the width is fixed at
+ * the storage layer rather than read from configuration. A model whose vectors
+ * are a different width cannot be indexed and is rejected, instead of silently
+ * failing at query time. Changing this value is a migration, not a setting.
+ */
+export const AI_VECTOR_DIMENSIONS = 1536;
+
+/**
+ * Chunking bounds. Chunks are built from whole sentences and paragraphs so a
+ * citation can quote a passage that reads on its own, with a small overlap so a
+ * fact split across a boundary is still retrieved by one of the two chunks.
+ */
+export const AI_TARGET_CHUNK_CHARS = 1200;
+export const AI_MAX_CHUNK_CHARS = 2000;
+export const AI_CHUNK_OVERLAP_CHARS = 200;
+export const AI_MIN_CHUNK_CHARS = 40;
+
+/**
  * A verified pointer back to the church's own record. Every claim in a generated
  * answer must resolve to one of these, and a citation is only ever constructed on
  * the server from a row the caller is permitted to read.

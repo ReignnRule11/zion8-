@@ -3,7 +3,10 @@ import { Prisma } from '@prisma/client';
 import { AppConfigService } from '../../common/config/app-config.service';
 import { AppLogger } from '../../common/logger/app-logger.service';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
-import { OBJECT_STORAGE, type ObjectStorage } from '../../infrastructure/storage/object-storage.port';
+import {
+  OBJECT_STORAGE,
+  type ObjectStorage,
+} from '../../infrastructure/storage/object-storage.port';
 import { ArtifactService } from './artifact.service';
 import { detectContentType } from './memory.utils';
 
@@ -32,8 +35,7 @@ interface ClaimedJobRow {
 }
 
 type JobOutcome =
-  | { status: 'SUCCEEDED'; result?: Record<string, unknown> }
-  | { status: 'BLOCKED'; reason: string };
+  { status: 'SUCCEEDED'; result?: Record<string, unknown> } | { status: 'BLOCKED'; reason: string };
 
 /**
  * Runs memory processing jobs.
@@ -103,13 +105,17 @@ export class MemoryJobRunner implements OnModuleInit, OnModuleDestroy {
   }
 
   private async claimBatch(limit: number): Promise<ClaimedJobRow[]> {
-    return this.prisma.withoutScope((tx) =>
-      tx.$queryRaw<ClaimedJobRow[]>`
+    return this.prisma.withoutScope(
+      (tx) =>
+        tx.$queryRaw<ClaimedJobRow[]>`
         UPDATE "memory_processing_jobs" AS j
         SET "status" = 'RUNNING', "started_at" = now(), "updated_at" = now()
         WHERE j."id" IN (
           SELECT "id" FROM "memory_processing_jobs"
           WHERE "status" = 'PENDING' AND "available_at" <= now()
+            -- The table is shared with the indexing worker; this worker owns
+            -- artifact jobs only, so the two never contend for one row.
+            AND "artifact_id" IS NOT NULL
           ORDER BY "priority" ASC, "created_at" ASC
           FOR UPDATE SKIP LOCKED
           LIMIT ${limit}
@@ -214,19 +220,13 @@ export class MemoryJobRunner implements OnModuleInit, OnModuleDestroy {
         },
       }),
     );
-    this.logger.warn(
-      `Memory job ${row.id} (${row.type}) blocked: ${reason}`,
-      'MemoryJobRunner',
-    );
+    this.logger.warn(`Memory job ${row.id} (${row.type}) blocked: ${reason}`, 'MemoryJobRunner');
   }
 
   private async markFailed(row: ClaimedJobRow, error: unknown): Promise<void> {
     const message = error instanceof Error ? error.message : String(error);
     const exhausted = row.attempts >= row.max_attempts;
-    const backoff = Math.min(
-      BASE_BACKOFF_MS * 2 ** Math.max(row.attempts - 1, 0),
-      MAX_BACKOFF_MS,
-    );
+    const backoff = Math.min(BASE_BACKOFF_MS * 2 ** Math.max(row.attempts - 1, 0), MAX_BACKOFF_MS);
 
     await this.prisma.withoutScope((tx) =>
       tx.memoryProcessingJob.update({

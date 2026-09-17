@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppConfigService } from '../../common/config/app-config.service';
+import { AiIndexRunner } from './ai-index.runner';
+import { AiIndexService } from './ai-index.service';
 import { CHAT_PROVIDER, type ChatProvider } from './ports/chat.provider';
 import { EMBEDDING_PROVIDER, type EmbeddingProvider } from './ports/embedding.provider';
 import { DeterministicEmbeddingProvider } from './providers/deterministic-embedding.provider';
@@ -41,7 +43,9 @@ import { HttpEmbeddingProvider } from './providers/http-embedding.provider';
       ): ChatProvider => (config.aiCapabilities.chat ? http : extractive),
       inject: [AppConfigService, ExtractiveChatProvider, HttpChatProvider],
     },
+    AiIndexService,
+    AiIndexRunner,
   ],
-  exports: [EMBEDDING_PROVIDER, CHAT_PROVIDER],
+  exports: [EMBEDDING_PROVIDER, CHAT_PROVIDER, AiIndexService, AiIndexRunner],
 })
 export class AiModule {}

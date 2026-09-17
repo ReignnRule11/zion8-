@@ -22,6 +22,7 @@ interface EmbeddingsResponse {
  */
 @Injectable()
 export class HttpEmbeddingProvider implements EmbeddingProvider {
+  readonly provider = 'LLM' as const;
   readonly model: string;
   readonly dimensions: number;
 

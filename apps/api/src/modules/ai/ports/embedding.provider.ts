@@ -30,6 +30,8 @@ export interface EmbeddingResult {
  * query code that depends on this interface.
  */
 export interface EmbeddingProvider {
+  /** Which runtime produced the vectors. Recorded in the model registry. */
+  readonly provider: AiProviderKind;
   readonly model: string;
   readonly dimensions: number;
   embed(request: EmbeddingRequest): Promise<EmbeddingResult>;

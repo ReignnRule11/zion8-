@@ -163,8 +163,8 @@ is archived, it leaves retrieval.
 
 | Phase | Deliverable |
 | --- | --- |
-| 0 Foundations | Contracts, permissions, error codes, environment, ports, deterministic adapters |
-| 1 Indexing | Extraction, chunking, embeddings, vector and full-text indexes, backfill |
+| 0 Foundations | Contracts, permissions, error codes, environment, ports, deterministic adapters. **Shipped.** |
+| 1 Indexing | Extraction, chunking, embeddings, vector and full-text indexes, backfill. **Shipped** (`ai_documents` / `ai_chunks` / `ai_chunk_embeddings`, reconciliation worker). |
 | 2 Retrieval | Hybrid search and `/ai/search` with citations |
 | 3 Answers | Grounded generation, citation verification, conversations, streaming |
 | 4 Capabilities | Document Q&A, sermon search, meeting summaries, prayer insights |

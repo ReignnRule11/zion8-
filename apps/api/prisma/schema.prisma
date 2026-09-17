@@ -289,6 +289,11 @@ model Tenant {
   memoryJobs      MemoryProcessingJob[]
   outboxEvents    OutboxEvent[]
 
+  aiEmbeddingModels AiEmbeddingModel[]
+  aiDocuments       AiDocument[]
+  aiChunks          AiChunk[]
+  aiChunkEmbeddings AiChunkEmbedding[]
+
   @@map("tenants")
 }
 
@@ -1486,14 +1491,21 @@ model OutboxEvent {
   @@map("outbox_events")
 }
 
-/// A unit of asynchronous memory work. Jobs are claimed by a worker with
+/// A unit of asynchronous work. Jobs are claimed by a worker with
 /// `FOR UPDATE SKIP LOCKED`, retried with a bounded attempt count, and — crucially
 /// — moved to BLOCKED when a required capability (OCR, speech-to-text) is not
 /// configured. A blocked job is visible and actionable, never silently "done".
+///
+/// The table is shared by the archive worker (which acts on `artifact_id`) and the
+/// indexing worker (which acts on `document_id`). It was generalised rather than
+/// duplicated so there is one place that owns claiming, backoff and blocked-state
+/// semantics; each worker claims only rows belonging to its own subject, so the
+/// two never race for the same job.
 model MemoryProcessingJob {
   id            String          @id @default(uuid()) @db.Uuid
   tenantId      String          @map("tenant_id") @db.Uuid
-  artifactId    String          @map("artifact_id") @db.Uuid
+  artifactId    String?         @map("artifact_id") @db.Uuid
+  documentId    String?         @map("document_id") @db.Uuid
   versionId     String?         @map("version_id") @db.Uuid
   type          MemoryJobType
   status        MemoryJobStatus @default(PENDING)
@@ -1511,12 +1523,167 @@ model MemoryProcessingJob {
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
 
-  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  artifact MemoryArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  artifact MemoryArtifact? @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  document AiDocument?     @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([status, availableAt, priority])
   @@index([tenantId, artifactId])
+  @@index([tenantId, documentId])
   @@index([tenantId, type, status])
   @@index([dedupeKey])
   @@map("memory_processing_jobs")
+}
+
+// Zion AI ---------------------------------------------------------------------
+// The search index. Zion AI keeps no copy of a church's records; it holds a
+// projection of them — the text, where it came from, and the vectors — with a
+// link back to the source row so a citation can always be opened.
+
+/// Which domain row a document was projected from.
+enum AiSourceType {
+  MEMORY_ARTIFACT
+  SERMON
+  MEETING
+  MEMBER_TIMELINE
+  PRAYER_REQUEST
+  EVENT
+  MEMBER
+}
+
+/// How sensitive a document is. Independent of the permission required to read
+/// it: the level lets an administrator reason about the corpus as a whole.
+enum AiSensitivity {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+/// The stages a projected document moves through to become searchable.
+enum AiDocumentStatus {
+  PENDING
+  PROCESSING
+  INDEXED
+  PARTIAL
+  FAILED
+  STALE
+}
+
+/// The registry of embedding models a workspace has used. A chunk's vector is
+/// keyed by model so that changing models is a re-embed, not a silent mixed
+/// index: two vectors produced by different models are never compared.
+model AiEmbeddingModel {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  provider   String   @db.VarChar(60)
+  model      String   @db.VarChar(160)
+  revision   String   @default("") @db.VarChar(80)
+  dimensions Int
+  metric     String   @default("cosine") @db.VarChar(20)
+  isDefault  Boolean  @default(false) @map("is_default")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  embeddings AiChunkEmbedding[]
+
+  @@unique([tenantId, provider, model, revision])
+  @@index([tenantId, isActive])
+  @@map("ai_embedding_models")
+}
+
+/// One source row projected into the index. `versionKey` is a string so that a
+/// source without versions still has a stable identity: the unique key is
+/// `(tenant, sourceType, sourceId, versionKey)` and a versionless source uses
+/// the literal `"none"`. `contentHash` is the hash of the exact text that was
+/// chunked, so a re-index of unchanged content is skipped.
+model AiDocument {
+  id                 String           @id @default(uuid()) @db.Uuid
+  tenantId           String           @map("tenant_id") @db.Uuid
+  sourceType         AiSourceType     @map("source_type")
+  sourceId           String           @map("source_id") @db.Uuid
+  sourceVersionId    String?          @map("source_version_id") @db.Uuid
+  versionKey         String           @map("version_key") @db.VarChar(64)
+  title              String           @db.VarChar(300)
+  kind               String?          @db.VarChar(60)
+  content            String?          @db.Text
+  contentHash        String           @map("content_hash") @db.VarChar(64)
+  language           String?          @db.VarChar(16)
+  status             AiDocumentStatus @default(PENDING)
+  sensitivity        AiSensitivity    @default(INTERNAL)
+  requiredPermission String?          @map("required_permission") @db.VarChar(60)
+  tags               String[]         @default([])
+  occurredAt         DateTime?        @map("occurred_at")
+  charCount          Int              @default(0) @map("char_count")
+  chunkCount         Int              @default(0) @map("chunk_count")
+  tokenCount         Int              @default(0) @map("token_count")
+  embeddingModelId   String?          @map("embedding_model_id") @db.Uuid
+  indexedAt          DateTime?        @map("indexed_at")
+  lastError          String?          @map("last_error") @db.Text
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  tenant Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  chunks AiChunk[]
+  jobs   MemoryProcessingJob[]
+
+  @@unique([tenantId, sourceType, sourceId, versionKey])
+  @@index([tenantId, status])
+  @@index([tenantId, sourceType, sourceId])
+  @@index([tenantId, contentHash])
+  @@map("ai_documents")
+}
+
+/// A passage of a document, sized so that a citation quotes something that reads
+/// on its own. `tsv` is a generated full-text column, maintained by PostgreSQL;
+/// it is declared `Unsupported` because the client never reads or writes it.
+model AiChunk {
+  id          String                   @id @default(uuid()) @db.Uuid
+  tenantId    String                   @map("tenant_id") @db.Uuid
+  documentId  String                   @map("document_id") @db.Uuid
+  ordinal     Int
+  content     String                   @db.Text
+  contentHash String                   @map("content_hash") @db.VarChar(64)
+  tokenCount  Int                      @map("token_count")
+  charStart   Int?                     @map("char_start")
+  charEnd     Int?                     @map("char_end")
+  page        Int?
+  startMs     Int?                     @map("start_ms")
+  endMs       Int?                     @map("end_ms")
+  tsv         Unsupported("tsvector")? @default(dbgenerated("to_tsvector('simple'::regconfig, COALESCE(content, ''::text))")) @map("tsv")
+  createdAt   DateTime                 @default(now()) @map("created_at")
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  document   AiDocument         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  embeddings AiChunkEmbedding[]
+
+  @@unique([documentId, ordinal])
+  @@index([tenantId, documentId])
+  @@index([tsv], type: Gin)
+  @@map("ai_chunks")
+}
+
+/// A chunk's vector for one embedding model. The width is fixed by the storage
+/// layer (see AI_VECTOR_DIMENSIONS); a model of a different width cannot be
+/// indexed. The unique key guarantees at most one vector per chunk per model.
+model AiChunkEmbedding {
+  id        String                      @id @default(uuid()) @db.Uuid
+  tenantId  String                      @map("tenant_id") @db.Uuid
+  chunkId   String                      @map("chunk_id") @db.Uuid
+  modelId   String                      @map("model_id") @db.Uuid
+  embedding Unsupported("vector")
+  createdAt DateTime                    @default(now()) @map("created_at")
+
+  tenant Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  chunk  AiChunk          @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+  model  AiEmbeddingModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@unique([chunkId, modelId])
+  @@index([tenantId, modelId])
+  // Expression indexes and HNSW cannot be represented by Prisma; the index is
+  // declared with its database name so introspection and drift checks agree.
+  // The width lives in the migration (`vector(1536)`), not in the schema.
+  @@index([embedding], map: "ai_chunk_embeddings_embedding_hnsw_idx")
+  @@map("ai_chunk_embeddings")
 }

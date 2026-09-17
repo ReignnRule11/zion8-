@@ -22,6 +22,7 @@ import type {
  */
 @Injectable()
 export class DeterministicEmbeddingProvider implements EmbeddingProvider {
+  readonly provider = 'DETERMINISTIC' as const;
   readonly model: string;
   readonly dimensions: number;
 

@@ -1,3 +1,4 @@
+import { AI_VECTOR_DIMENSIONS } from '@zion8/contracts';
 import { z } from 'zod';
 
 const commaSeparated = z
@@ -116,7 +117,16 @@ export const envSchema = z.object({
   AI_EMBEDDING_MODEL: z.string().default(''),
   AI_EMBEDDING_BASE_URL: z.string().default(''),
   AI_EMBEDDING_API_KEY: z.string().default(''),
-  AI_EMBEDDING_DIMENSIONS: z.coerce.number().int().min(64).max(8192).default(1536),
+  // Must equal the width of the stored vector column (AI_VECTOR_DIMENSIONS).
+  // The assertion is deliberate: a mismatch would only surface as a failed
+  // insert at index time, far from the cause.
+  AI_EMBEDDING_DIMENSIONS: z.coerce
+    .number()
+    .int()
+    .refine((value) => value === AI_VECTOR_DIMENSIONS, {
+      message: `AI_EMBEDDING_DIMENSIONS must be ${AI_VECTOR_DIMENSIONS}; changing it requires a migration`,
+    })
+    .default(AI_VECTOR_DIMENSIONS),
   AI_CHAT_PROVIDER: z.string().default(''),
   AI_CHAT_MODEL: z.string().default(''),
   AI_CHAT_BASE_URL: z.string().default(''),
