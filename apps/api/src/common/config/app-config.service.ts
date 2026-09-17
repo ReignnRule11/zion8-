@@ -264,6 +264,14 @@ export class AppConfigService {
     };
   }
 
+  get sermonWorker(): { enabled: boolean; intervalMs: number; batchSize: number } {
+    return {
+      enabled: this.env.SERMON_WORKER_ENABLED && !this.isTest,
+      intervalMs: this.env.SERMON_WORKER_INTERVAL_MS,
+      batchSize: this.env.SERMON_WORKER_BATCH_SIZE,
+    };
+  }
+
   get notifications(): {
     emailFrom: string;
     resendApiKey: string;

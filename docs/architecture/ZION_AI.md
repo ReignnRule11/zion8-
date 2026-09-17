@@ -159,6 +159,11 @@ produced it, so a citation can be opened, downloaded, and checked against the
 original bytes. When an artifact is re-uploaded, the projection updates; when it
 is archived, it leaves retrieval.
 
+Sermon INDEX upserts an `AiDocument` with `sourceType=SERMON` and
+`versionKey=current`. The same indexer that drains pending artifacts
+(`findPendingSermons` / `indexSermon`) chunks that transcript; there is no
+second sermon search index.
+
 ## Phases
 
 | Phase | Deliverable |
@@ -186,6 +191,7 @@ is archived, it leaves retrieval.
 ## Related
 
 - [MEMORY_ENGINE.md](./MEMORY_ENGINE.md) — the archive Zion AI indexes.
+- [SERMON.md](./SERMON.md) — the publishing context whose transcripts are indexed as `SERMON`.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — module boundaries and layering.
 - [MULTI_TENANCY.md](./MULTI_TENANCY.md) — row-level security.
 - [AUTHENTICATION.md](./AUTHENTICATION.md) — principals and permissions.

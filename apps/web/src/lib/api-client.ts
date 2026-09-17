@@ -32,6 +32,18 @@ import {
   memoryJobSummarySchema,
   memoryReprocessResponseSchema,
   onboardingStateSchema,
+  sermonGenerateResponseSchema,
+  sermonJobSummarySchema,
+  sermonNotePageSchema,
+  sermonNoteSchema,
+  sermonPageSchema,
+  sermonRecommendationPageSchema,
+  sermonReprocessResponseSchema,
+  sermonResponseSchema,
+  sermonSeriesPageSchema,
+  sermonSeriesResponseSchema,
+  sermonShareSchema,
+  sermonTranscriptSchema,
   onboardingSummarySchema,
   planCatalogResponseSchema,
   relationshipGraphSchema,
@@ -127,6 +139,33 @@ import {
   type RelationshipPage,
   type RelationshipRequest,
   type RelationshipResponse,
+  type SermonCreateRequest,
+  type SermonGenerateRequest,
+  type SermonGenerateResponse,
+  type SermonJobSummary,
+  type SermonListQuery,
+  type SermonNote,
+  type SermonNoteCreateRequest,
+  type SermonNoteListQuery,
+  type SermonNotePage,
+  type SermonNoteUpdateRequest,
+  type SermonPage,
+  type SermonPublishRequest,
+  type SermonRecommendationPage,
+  type SermonReprocessRequest,
+  type SermonReprocessResponse,
+  type SermonResponse,
+  type SermonSearchQuery,
+  type SermonSeriesCreateRequest,
+  type SermonSeriesListQuery,
+  type SermonSeriesPage,
+  type SermonSeriesResponse,
+  type SermonSeriesUpdateRequest,
+  type SermonShare,
+  type SermonShareCreateRequest,
+  type SermonTranscript,
+  type SermonTranscriptUpsertRequest,
+  type SermonUpdateRequest,
   type SelectSubscriptionRequest,
   type Session,
   type SessionListResponse,
@@ -1327,6 +1366,298 @@ export const api = {
       path: `/memory/artifacts/${artifactId}/download${toQuery(query)}`,
       schema: memoryArtifactDownloadSchema,
       token,
+    });
+  },
+
+  // Sermons -----------------------------------------------------------------
+
+  createSermonSeries(
+    token: string,
+    input: SermonSeriesCreateRequest,
+  ): Promise<SermonSeriesResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: '/sermons/series',
+      schema: sermonSeriesResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listSermonSeries(token: string, query?: SermonSeriesListQuery): Promise<SermonSeriesPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/sermons/series${toQuery(query)}`,
+      schema: sermonSeriesPageSchema,
+      token,
+    });
+  },
+
+  getSermonSeries(token: string, seriesId: string): Promise<SermonSeriesResponse> {
+    return apiRequest({
+      method: 'GET',
+      path: `/sermons/series/${seriesId}`,
+      schema: sermonSeriesResponseSchema,
+      token,
+    });
+  },
+
+  updateSermonSeries(
+    token: string,
+    seriesId: string,
+    input: SermonSeriesUpdateRequest,
+  ): Promise<SermonSeriesResponse> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/sermons/series/${seriesId}`,
+      schema: sermonSeriesResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  archiveSermonSeries(token: string, seriesId: string): Promise<SermonSeriesResponse> {
+    return apiRequest({
+      method: 'DELETE',
+      path: `/sermons/series/${seriesId}`,
+      schema: sermonSeriesResponseSchema,
+      token,
+    });
+  },
+
+  createSermon(token: string, input: SermonCreateRequest): Promise<SermonResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: '/sermons',
+      schema: sermonResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listSermons(token: string, query?: SermonListQuery): Promise<SermonPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/sermons${toQuery(query)}`,
+      schema: sermonPageSchema,
+      token,
+    });
+  },
+
+  searchSermons(token: string, query: SermonSearchQuery): Promise<SermonPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/sermons/search${toQuery(query)}`,
+      schema: sermonPageSchema,
+      token,
+    });
+  },
+
+  getSermon(token: string, sermonId: string): Promise<SermonResponse> {
+    return apiRequest({
+      method: 'GET',
+      path: `/sermons/${sermonId}`,
+      schema: sermonResponseSchema,
+      token,
+    });
+  },
+
+  updateSermon(
+    token: string,
+    sermonId: string,
+    input: SermonUpdateRequest,
+  ): Promise<SermonResponse> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/sermons/${sermonId}`,
+      schema: sermonResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  publishSermon(
+    token: string,
+    sermonId: string,
+    input?: SermonPublishRequest,
+  ): Promise<SermonResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: `/sermons/${sermonId}/publish`,
+      schema: sermonResponseSchema,
+      body: input ?? {},
+      token,
+    });
+  },
+
+  archiveSermon(token: string, sermonId: string): Promise<SermonResponse> {
+    return apiRequest({
+      method: 'DELETE',
+      path: `/sermons/${sermonId}`,
+      schema: sermonResponseSchema,
+      token,
+    });
+  },
+
+  reprocessSermon(
+    token: string,
+    sermonId: string,
+    input?: SermonReprocessRequest,
+  ): Promise<SermonReprocessResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: `/sermons/${sermonId}/reprocess`,
+      schema: sermonReprocessResponseSchema,
+      body: input ?? {},
+      token,
+    });
+  },
+
+  generateSermon(
+    token: string,
+    sermonId: string,
+    input: SermonGenerateRequest,
+  ): Promise<SermonGenerateResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: `/sermons/${sermonId}/generate`,
+      schema: sermonGenerateResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  upsertSermonTranscript(
+    token: string,
+    sermonId: string,
+    input: SermonTranscriptUpsertRequest,
+  ): Promise<SermonTranscript> {
+    return apiRequest({
+      method: 'POST',
+      path: `/sermons/${sermonId}/transcript`,
+      schema: sermonTranscriptSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listSermonJobs(token: string, sermonId: string): Promise<SermonJobSummary[]> {
+    return apiRequest({
+      method: 'GET',
+      path: `/sermons/${sermonId}/jobs`,
+      schema: z.array(sermonJobSummarySchema),
+      token,
+    });
+  },
+
+  listSermonRecommendations(
+    token: string,
+    sermonId: string,
+  ): Promise<SermonRecommendationPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/sermons/${sermonId}/recommendations`,
+      schema: sermonRecommendationPageSchema,
+      token,
+    });
+  },
+
+  listSermonNotes(
+    token: string,
+    sermonId: string,
+    query?: SermonNoteListQuery,
+  ): Promise<SermonNotePage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/sermons/${sermonId}/notes${toQuery(query)}`,
+      schema: sermonNotePageSchema,
+      token,
+    });
+  },
+
+  createSermonNote(
+    token: string,
+    sermonId: string,
+    input: SermonNoteCreateRequest,
+  ): Promise<SermonNote> {
+    return apiRequest({
+      method: 'POST',
+      path: `/sermons/${sermonId}/notes`,
+      schema: sermonNoteSchema,
+      body: input,
+      token,
+    });
+  },
+
+  updateSermonNote(
+    token: string,
+    sermonId: string,
+    noteId: string,
+    input: SermonNoteUpdateRequest,
+  ): Promise<SermonNote> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/sermons/${sermonId}/notes/${noteId}`,
+      schema: sermonNoteSchema,
+      body: input,
+      token,
+    });
+  },
+
+  deleteSermonNote(token: string, sermonId: string, noteId: string): Promise<void> {
+    return apiRequest({
+      method: 'DELETE',
+      path: `/sermons/${sermonId}/notes/${noteId}`,
+      schema: voidSchema,
+      token,
+    });
+  },
+
+  createSermonShare(
+    token: string,
+    sermonId: string,
+    input?: SermonShareCreateRequest,
+  ): Promise<SermonShare> {
+    return apiRequest({
+      method: 'POST',
+      path: `/sermons/${sermonId}/shares`,
+      schema: sermonShareSchema,
+      body: input ?? {},
+      token,
+    });
+  },
+
+  listSermonShares(token: string, sermonId: string): Promise<SermonShare[]> {
+    return apiRequest({
+      method: 'GET',
+      path: `/sermons/${sermonId}/shares`,
+      schema: z.array(sermonShareSchema),
+      token,
+    });
+  },
+
+  revokeSermonShare(token: string, sermonId: string, shareId: string): Promise<SermonShare> {
+    return apiRequest({
+      method: 'DELETE',
+      path: `/sermons/${sermonId}/shares/${shareId}`,
+      schema: sermonShareSchema,
+      token,
+    });
+  },
+
+  getPublicSermon(tenantSlug: string, sermonSlug: string): Promise<SermonResponse> {
+    return apiRequest({
+      method: 'GET',
+      path: `/public/sermons/${tenantSlug}/${sermonSlug}`,
+      schema: sermonResponseSchema,
+    });
+  },
+
+  getSharedSermon(token: string): Promise<SermonResponse> {
+    return apiRequest({
+      method: 'GET',
+      path: `/public/sermons/shares/${token}`,
+      schema: sermonResponseSchema,
     });
   },
 };

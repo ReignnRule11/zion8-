@@ -12,6 +12,7 @@ const LINKS = [
   { href: '/community/volunteers', label: 'Volunteers' },
   { href: '/community/relationships', label: 'Relationships' },
   { href: '/memory', label: 'Memory' },
+  { href: '/sermons', label: 'Sermons' },
 ] as const;
 
 export function SectionNav() {

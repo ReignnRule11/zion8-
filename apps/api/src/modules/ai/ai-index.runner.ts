@@ -76,6 +76,22 @@ export class AiIndexRunner implements OnModuleInit, OnModuleDestroy {
         );
       }
     }
+
+    const remaining = Math.max(limit - processed, 1);
+    const sermons = await this.index.findPendingSermons(remaining);
+    for (const sermon of sermons) {
+      try {
+        await this.index.indexSermon(sermon);
+        processed += 1;
+      } catch (error) {
+        this.logger.warn(
+          `Indexing sermon document ${sermon.document_id} failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          'AiIndexRunner',
+        );
+      }
+    }
     return processed;
   }
 }

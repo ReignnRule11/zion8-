@@ -23,5 +23,9 @@ export const config = {
     '/people/:path*',
     '/people',
     '/community/:path*',
+    '/memory/:path*',
+    '/memory',
+    '/sermons/:path*',
+    '/sermons',
   ],
 };

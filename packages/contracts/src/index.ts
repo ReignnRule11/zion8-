@@ -19,4 +19,5 @@ export * from './onboarding/member-import.schemas';
 export * from './membership';
 export * from './memory';
 export * from './ai';
+export * from './sermon';
 export * from './health/health.schemas';

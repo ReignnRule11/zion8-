@@ -38,9 +38,9 @@ modules with genuinely different scaling and availability profiles.
                                     |
         +---------------------------+---------------------------+
         |                           |                           |
-   Auth / Tenancy            Domain Modules              Platform Modules
-   (implemented)          (membership, giving,        (events, search,
-                            events, memory)             notifications)
+    Auth / Tenancy            Domain Modules              Platform Modules
+    (implemented)          (membership, sermon,        (events, search,
+                            memory, giving)             notifications)
         |                           |                           |
         +---------------------------+---------------------------+
                                     |
@@ -67,7 +67,8 @@ modules with genuinely different scaling and availability profiles.
 | `giving` | Contributions, funds, statements | Planned |
 | `accounting` | Ledgers, budgets, reconciliation | Planned |
 | `care` | Prayer requests, counseling, follow-up | Planned |
-| `memory` | Sermons, documents, archives, timeline | In progress |
+| `memory` | Institutional archive: artifacts, versions, links, tags | Implemented (Phase A) |
+| `sermon` | Publishing, series, study surface, podcast, shares | Implemented |
 | `ai` | Embeddings, semantic search, grounded answers | In progress |
 
 ## Layers inside a module
@@ -126,7 +127,8 @@ See `docs/architecture/AUTHENTICATION.md` for the full authentication model,
 `docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail,
 `docs/architecture/CHURCH_ONBOARDING.md` for the onboarding journey that carries a new church from
 registration to a working workspace, `docs/architecture/MEMBERSHIP.md` for the membership domain
-that the workspace is built on, `docs/architecture/MEMORY_ENGINE.md` for the archive, and
+that the workspace is built on, `docs/architecture/MEMORY_ENGINE.md` for the archive,
+`docs/architecture/SERMON.md` for publishing and the study surface, and
 `docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it.
 
 ## Observability

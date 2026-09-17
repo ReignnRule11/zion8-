@@ -299,6 +299,7 @@ module and the same boundaries:
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — the module and layering rules this domain follows.
 - [MULTI_TENANCY.md](./MULTI_TENANCY.md) — row-level security and `withTenant`.
+- [SERMON.md](./SERMON.md) — publishing; sermons point at artifacts, they do not store bytes.
 - [ZION_AI.md](./ZION_AI.md) — the retrieval and reasoning layer built over this archive.
 - [MEMBERSHIP.md](./MEMBERSHIP.md) — the member documents this archive links to.
 - [AUTHENTICATION.md](./AUTHENTICATION.md) — principals and permissions.

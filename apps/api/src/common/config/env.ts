@@ -142,6 +142,10 @@ export const envSchema = z.object({
   AI_WORKER_INTERVAL_MS: z.coerce.number().int().min(250).default(5000),
   AI_WORKER_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(10),
 
+  SERMON_WORKER_ENABLED: booleanString('true'),
+  SERMON_WORKER_INTERVAL_MS: z.coerce.number().int().min(250).default(5000),
+  SERMON_WORKER_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(10),
+
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

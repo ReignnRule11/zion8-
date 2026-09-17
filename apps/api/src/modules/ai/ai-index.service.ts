@@ -31,6 +31,13 @@ interface PendingSourceRow {
   captured_at: Date | null;
 }
 
+export interface PendingSermonRow {
+  document_id: string;
+  tenant_id: string;
+  content: string | null;
+  title: string;
+}
+
 export interface IndexingOutcome {
   documentId: string;
   status: 'INDEXED' | 'PARTIAL';
@@ -99,6 +106,53 @@ export class AiIndexService {
         LIMIT ${limit}
       `,
     );
+  }
+
+  /**
+   * Sermon transcripts queued by the sermon INDEX stage.
+   *
+   * The sermon pipeline writes the transcript onto `ai_documents` as PENDING.
+   * This pass chunks and embeds that text so sermon search reuses the same
+   * corpus as the rest of Zion AI.
+   */
+  async findPendingSermons(limit: number): Promise<PendingSermonRow[]> {
+    return this.prisma.withoutScope(
+      (tx) =>
+        tx.$queryRaw<PendingSermonRow[]>`
+        SELECT d."id"          AS document_id,
+               d."tenant_id"   AS tenant_id,
+               d."content"     AS content,
+               d."title"       AS title
+        FROM "ai_documents" d
+        WHERE d."source_type" = 'SERMON'::"AiSourceType"
+          AND d."status" IN ('PENDING', 'FAILED', 'STALE', 'PROCESSING')
+          AND d."content" IS NOT NULL
+          AND length(d."content") > 0
+        ORDER BY d."updated_at" ASC
+        LIMIT ${limit}
+      `,
+    );
+  }
+
+  async indexSermon(source: PendingSermonRow): Promise<IndexingOutcome> {
+    const text = source.content?.trim() ?? '';
+    if (text.length === 0) {
+      await this.markPartial(source.tenant_id, source.document_id, AiIndexBlockedReason.NO_TEXT_CONTENT);
+      return { documentId: source.document_id, status: 'PARTIAL', chunkCount: 0, reason: AiIndexBlockedReason.NO_TEXT_CONTENT };
+    }
+    const chunks = chunkText(text);
+    try {
+      const modelId = await this.ensureEmbeddingModel(source.tenant_id);
+      const chunkIds = await this.replaceChunks(source.tenant_id, source.document_id, chunks);
+      const vectors = await this.embedChunks(chunks.map((chunk) => chunk.content));
+      await this.storeEmbeddings(source.tenant_id, modelId, chunkIds, vectors);
+      await this.markIndexed(source.tenant_id, source.document_id, modelId, chunks);
+      return { documentId: source.document_id, status: 'INDEXED', chunkCount: chunks.length };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.markFailed(source.tenant_id, source.document_id, message);
+      throw error;
+    }
   }
 
   /** Index one source. Idempotent: re-running replaces the projection in place. */

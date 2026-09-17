@@ -22,6 +22,7 @@ import { HealthModule } from './modules/health/health.module';
 import { MembershipModule } from './modules/membership/membership.module';
 import { MemoryModule } from './modules/memory/memory.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { SermonModule } from './modules/sermon/sermon.module';
 import { TenancyModule } from './modules/tenancy/tenancy.module';
 
 @Module({
@@ -45,6 +46,7 @@ import { TenancyModule } from './modules/tenancy/tenancy.module';
     MembershipModule,
     MemoryModule,
     AiModule,
+    SermonModule,
     HealthModule,
   ],
   providers: [
