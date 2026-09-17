@@ -61,14 +61,14 @@ modules with genuinely different scaling and availability profiles.
 | `auth` | Identity, credentials, sessions, refresh rotation, RBAC | Implemented |
 | `tenancy` | Tenant lifecycle, memberships, tenant context resolution | Implemented |
 | `onboarding` | Church setup journey, workspace profile, invitations, subscription, branding, member import | Implemented |
-| `membership` | People, households, pastoral records | Planned |
+| `membership` | People, households, pastoral records | Implemented |
 | `attendance` | Services, check-in, attendance history | Planned |
 | `events` | Calendar, registration, facilities | Planned |
 | `giving` | Contributions, funds, statements | Planned |
 | `accounting` | Ledgers, budgets, reconciliation | Planned |
 | `care` | Prayer requests, counseling, follow-up | Planned |
-| `memory` | Sermons, documents, archives, timeline | Planned |
-| `ai` | Embeddings, semantic search, grounded answers | Planned |
+| `memory` | Sermons, documents, archives, timeline | In progress |
+| `ai` | Embeddings, semantic search, grounded answers | In progress |
 
 ## Layers inside a module
 
@@ -125,8 +125,9 @@ which directly serves the "preserve church history" goal.
 See `docs/architecture/AUTHENTICATION.md` for the full authentication model,
 `docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail,
 `docs/architecture/CHURCH_ONBOARDING.md` for the onboarding journey that carries a new church from
-registration to a working workspace, and `docs/architecture/MEMBERSHIP.md` for the membership domain
-that the workspace is built on.
+registration to a working workspace, `docs/architecture/MEMBERSHIP.md` for the membership domain
+that the workspace is built on, `docs/architecture/MEMORY_ENGINE.md` for the archive, and
+`docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it.
 
 ## Observability
 

@@ -11,12 +11,16 @@ import { RequestContextMiddleware } from './common/context/request-context.middl
 import { GlobalExceptionFilter } from './common/errors/global-exception.filter';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
+import { EventsModule } from './infrastructure/events/events.module';
+import { StorageModule } from './infrastructure/storage/storage.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuthorizationGuard } from './modules/auth/guards/authorization.guard';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { AiModule } from './modules/ai/ai.module';
 import { HealthModule } from './modules/health/health.module';
 import { MembershipModule } from './modules/membership/membership.module';
+import { MemoryModule } from './modules/memory/memory.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { TenancyModule } from './modules/tenancy/tenancy.module';
 
@@ -32,11 +36,15 @@ import { TenancyModule } from './modules/tenancy/tenancy.module';
     LoggerModule,
     PrismaModule,
     RedisModule,
+    StorageModule,
+    EventsModule,
     AuditModule,
     TenancyModule,
     AuthModule,
     OnboardingModule,
     MembershipModule,
+    MemoryModule,
+    AiModule,
     HealthModule,
   ],
   providers: [

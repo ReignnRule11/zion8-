@@ -55,7 +55,9 @@ See `docs/architecture/ARCHITECTURE.md` for the detailed design,
 `docs/architecture/MULTI_TENANCY.md` for the isolation model,
 `docs/architecture/AUTHENTICATION.md` for the enterprise authentication model,
 `docs/architecture/CHURCH_ONBOARDING.md` for the church onboarding journey,
-`docs/architecture/MEMBERSHIP.md` for the membership domain, and
+`docs/architecture/MEMBERSHIP.md` for the membership domain,
+`docs/architecture/MEMORY_ENGINE.md` for the Digital Memory Engine,
+`docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it, and
 `docs/architecture/REPOSITORY_STRUCTURE.md` for how the repository is organized, worked in, and
 scaled.
 

@@ -4,7 +4,6 @@ import { AuditModule } from '../audit/audit.module';
 import { AttendanceService } from './attendance.service';
 import { DepartmentService } from './department.service';
 import { DocumentService } from './documents/document.service';
-import { DOCUMENT_STORAGE, LocalDocumentStorage } from './documents/storage.port';
 import { FamilyService } from './family.service';
 import { AttendanceResolver } from './graphql/attendance.resolver';
 import { DepartmentsResolver } from './graphql/departments.resolver';
@@ -42,8 +41,6 @@ import { VolunteerService } from './volunteer.service';
     TimelineService,
     DocumentService,
     MemberProfileService,
-    LocalDocumentStorage,
-    { provide: DOCUMENT_STORAGE, useExisting: LocalDocumentStorage },
     DeterministicSummaryProvider,
     LlmSummaryProvider,
     {

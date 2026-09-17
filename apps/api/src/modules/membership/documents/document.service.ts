@@ -16,7 +16,7 @@ import { PrismaService } from '../../../infrastructure/prisma/prisma.service';
 import { MemberService } from '../member.service';
 import { TimelineService } from '../timeline.service';
 import { pageArgs, toIso } from '../membership.utils';
-import { DOCUMENT_STORAGE, type DocumentStorage } from './storage.port';
+import { OBJECT_STORAGE, type ObjectStorage } from '../../../infrastructure/storage/object-storage.port';
 
 const DOWNLOAD_TTL_SECONDS = 300;
 
@@ -27,7 +27,7 @@ export class DocumentService {
     private readonly members: MemberService,
     private readonly timeline: TimelineService,
     private readonly config: AppConfigService,
-    @Inject(DOCUMENT_STORAGE) private readonly storage: DocumentStorage,
+    @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorage,
   ) {}
 
   async upload(

@@ -1,16 +1,6 @@
 import type { PaginationQuery } from '@zion8/contracts';
-import { DomainError } from '../../common/errors/domain-error';
-import type { AuthenticatedPrincipal } from '../../common/security/principal';
 
-/**
- * The tenant is never read from the request. It is taken from the authenticated
- * principal so that every membership read and write runs under the row-level
- * security policy of the caller's church, on both the REST and GraphQL surfaces.
- */
-export function tenantOf(principal: AuthenticatedPrincipal): string {
-  if (!principal.tenantId) throw DomainError.tenantRequired();
-  return principal.tenantId;
-}
+export { tenantOf } from '../../common/security/principal';
 
 /** Serialize a `DateTime` to an ISO instant, preserving null. */
 export function toIso(value: Date | null | undefined): string | null {

@@ -26,6 +26,11 @@ import {
   memberPageSchema,
   memberProfileSchema,
   memberResponseSchema,
+  memoryArtifactDownloadSchema,
+  memoryArtifactPageSchema,
+  memoryArtifactResponseSchema,
+  memoryJobSummarySchema,
+  memoryReprocessResponseSchema,
   onboardingStateSchema,
   onboardingSummarySchema,
   planCatalogResponseSchema,
@@ -100,6 +105,17 @@ import {
   type MemberRequest,
   type MemberResponse,
   type MemberUpdateRequest,
+  type MemoryArtifactCreateRequest,
+  type MemoryArtifactDownload,
+  type MemoryArtifactLinkRequest,
+  type MemoryArtifactListQuery,
+  type MemoryArtifactPage,
+  type MemoryArtifactResponse,
+  type MemoryArtifactUpdateRequest,
+  type MemoryJobSummary,
+  type MemoryReprocessRequest,
+  type MemoryReprocessResponse,
+  type MemoryVersionQuery,
   type OnboardingState,
   type OnboardingSummary,
   type PlanCatalogResponse,
@@ -1191,6 +1207,125 @@ export const api = {
       path: `/membership/members/${memberId}/summary`,
       schema: memberAiSummaryResponseSchema,
       body: input,
+      token,
+    });
+  },
+
+  // Digital Memory Engine ---------------------------------------------------
+
+  createMemoryArtifact(
+    token: string,
+    input: MemoryArtifactCreateRequest,
+  ): Promise<MemoryArtifactResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: '/memory/artifacts',
+      schema: memoryArtifactResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listMemoryArtifacts(token: string, query?: MemoryArtifactListQuery): Promise<MemoryArtifactPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/memory/artifacts${toQuery(query)}`,
+      schema: memoryArtifactPageSchema,
+      token,
+    });
+  },
+
+  getMemoryArtifact(token: string, artifactId: string): Promise<MemoryArtifactResponse> {
+    return apiRequest({
+      method: 'GET',
+      path: `/memory/artifacts/${artifactId}`,
+      schema: memoryArtifactResponseSchema,
+      token,
+    });
+  },
+
+  updateMemoryArtifact(
+    token: string,
+    artifactId: string,
+    input: MemoryArtifactUpdateRequest,
+  ): Promise<MemoryArtifactResponse> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/memory/artifacts/${artifactId}`,
+      schema: memoryArtifactResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  archiveMemoryArtifact(token: string, artifactId: string): Promise<MemoryArtifactResponse> {
+    return apiRequest({
+      method: 'DELETE',
+      path: `/memory/artifacts/${artifactId}`,
+      schema: memoryArtifactResponseSchema,
+      token,
+    });
+  },
+
+  addMemoryArtifactLink(
+    token: string,
+    artifactId: string,
+    input: MemoryArtifactLinkRequest,
+  ): Promise<MemoryArtifactResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: `/memory/artifacts/${artifactId}/links`,
+      schema: memoryArtifactResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  removeMemoryArtifactLink(
+    token: string,
+    artifactId: string,
+    linkId: string,
+  ): Promise<MemoryArtifactResponse> {
+    return apiRequest({
+      method: 'DELETE',
+      path: `/memory/artifacts/${artifactId}/links/${linkId}`,
+      schema: memoryArtifactResponseSchema,
+      token,
+    });
+  },
+
+  reprocessMemoryArtifact(
+    token: string,
+    artifactId: string,
+    input: MemoryReprocessRequest,
+  ): Promise<MemoryReprocessResponse> {
+    return apiRequest({
+      method: 'POST',
+      path: `/memory/artifacts/${artifactId}/reprocess`,
+      schema: memoryReprocessResponseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listMemoryJobs(token: string, artifactId: string): Promise<MemoryJobSummary[]> {
+    return apiRequest({
+      method: 'GET',
+      path: `/memory/artifacts/${artifactId}/jobs`,
+      schema: z.array(memoryJobSummarySchema),
+      token,
+    });
+  },
+
+  downloadMemoryArtifact(
+    token: string,
+    artifactId: string,
+    query?: MemoryVersionQuery,
+  ): Promise<MemoryArtifactDownload> {
+    return apiRequest({
+      method: 'GET',
+      path: `/memory/artifacts/${artifactId}/download${toQuery(query)}`,
+      schema: memoryArtifactDownloadSchema,
       token,
     });
   },
