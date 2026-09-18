@@ -22,14 +22,12 @@ habit, this document wins.
 zion8/
 ├── .github/
 │   ├── workflows/
-│   │   ├── ci.yml                     # PR gate: affected-only
-│   │   ├── _build.yml                 # reusable: install + turbo build
-│   │   ├── _test.yml                  # reusable: unit + integration
-│   │   ├── _e2e.yml                   # reusable: e2e with service containers
-│   │   ├── _security.yml              # reusable: CodeQL, Trivy, dependency review
-│   │   ├── _docker.yml                # reusable: build, sign, push images
-│   │   ├── deploy-staging.yml         # on merge to main
-│   │   ├── deploy-production.yml      # on release tag
+│   │   ├── ci.yml                     # PR gate: build, typecheck, lint, test, e2e
+│   │   ├── security.yml               # CodeQL, Trivy, gitleaks, dependency-review
+│   │   ├── docker.yml                 # bake, sign, push images
+│   │   ├── terraform.yml              # plan/validate staging and production
+│   │   ├── deploy-staging.yml         # on merge to main after docker
+│   │   ├── deploy-production.yml      # on signed release tag
 │   │   ├── mobile-release.yml         # Flutter build and store submission
 │   │   ├── release.yml                # Changesets version and publish
 │   │   └── codegen-drift.yml          # fails if generated clients are stale
@@ -122,7 +120,7 @@ zion8/
 │
 ├── docs/
 │   ├── adr/                           # Architecture Decision Records, numbered
-│   ├── architecture/                  # this document, ARCHITECTURE.md, MULTI_TENANCY.md, MEMBERSHIP.md, MEMORY_ENGINE.md, ZION_AI.md
+│   ├── architecture/                  # ARCHITECTURE.md, DEVOPS.md, MULTI_TENANCY.md, MEMBERSHIP.md, MEMORY_ENGINE.md, ZION_AI.md
 │   ├── standards/                     # coding, testing, review, security standards
 │   ├── runbooks/                      # incident and operational procedures
 │   └── onboarding/                    # day-1 developer guide

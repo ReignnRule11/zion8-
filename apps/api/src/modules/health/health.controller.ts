@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Res } from '@nestjs/common';
 import type { DependencyHealth, Liveness, Readiness } from '@zion8/contracts';
+import type { Response } from 'express';
 import { Public } from '../../common/security/decorators';
 import { AppConfigService } from '../../common/config/app-config.service';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
@@ -27,7 +28,7 @@ export class HealthController {
 
   @Public()
   @Get('ready')
-  async ready(): Promise<Readiness> {
+  async ready(@Res({ passthrough: true }) response: Response): Promise<Readiness> {
     const dependencies: DependencyHealth[] = [];
 
     try {
@@ -60,6 +61,9 @@ export class HealthController {
     );
 
     const status: Readiness['status'] = postgresDown ? 'down' : redisDown ? 'degraded' : 'ok';
+    if (status === 'down') {
+      response.status(503);
+    }
 
     return {
       status,

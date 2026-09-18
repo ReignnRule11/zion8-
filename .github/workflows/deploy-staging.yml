@@ -1,0 +1,58 @@
+name: Deploy staging
+
+on:
+  workflow_run:
+    workflows: [Docker]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Image git sha
+        required: true
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  promote:
+    name: Sync staging overlay
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve revision
+        id: rev
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "sha=${{ github.event.inputs.revision }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pin staging digests
+        run: |
+          sha="${{ steps.rev.outputs.sha }}"
+          sed -i "s|newTag: .*|newTag: ${sha}|" infrastructure/kubernetes/overlays/staging/kustomization.yaml
+
+      - name: Commit overlay
+        run: |
+          git config user.name "zion8-bot"
+          git config user.email "bot@zion8.invalid"
+          git add infrastructure/kubernetes/overlays/staging/kustomization.yaml
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(k8s): point staging at ${{ steps.rev.outputs.sha }}"
+          git push
+
+      # Argo CD watches this overlay. The migrate Job is a pre-sync hook.
+      - name: Record
+        run: echo "Argo CD will sync staging and run the migrate Job before rollout."
