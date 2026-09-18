@@ -149,6 +149,34 @@ export class VerificationService {
   }
 
   /**
+   * Looks up a token challenge without consuming it. Used to render a preview
+   * page (for example "You have been invited to ...") before the bearer decides
+   * whether to accept, and again when they do. The caller is responsible for
+   * enforcing expiry and consumed state, which `consumeByToken` still does.
+   */
+  async findByToken(input: {
+    purpose: ChallengePurpose;
+    secret: string;
+  }): Promise<ConsumedChallenge | null> {
+    const secretHash = this.secrets.hash(input.secret);
+    const challenge = await this.prisma.withScope({ isPlatformAdmin: true }, (tx) =>
+      tx.verificationChallenge.findFirst({
+        where: { purpose: input.purpose, secretHash },
+      }),
+    );
+    if (!challenge) return null;
+
+    return {
+      id: challenge.id,
+      purpose: challenge.purpose,
+      identifier: challenge.identifier,
+      userId: challenge.userId,
+      tenantId: challenge.tenantId,
+      metadata: challenge.metadata,
+    };
+  }
+
+  /**
    * Consumes a high-entropy token challenge where the caller only presents the
    * token and not the identifier it was issued for (magic links, email
    * verification, password reset). Attempt limiting is unnecessary here because

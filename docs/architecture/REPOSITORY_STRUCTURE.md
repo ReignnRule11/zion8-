@@ -55,7 +55,7 @@ zion8/
 │   │   ├── assets/
 │   │   └── pubspec.yaml
 │   ├── api/                           # NestJS modular monolith (HTTP source of truth)
-│   │   ├── src/modules/               # auth, tenancy, membership, attendance, events, giving, care, memory, ai
+│   │   ├── src/modules/               # auth, tenancy, onboarding, membership, attendance, events, accounting, care, memory, sermon, ai
 │   │   ├── src/common/
 │   │   ├── src/infrastructure/        # prisma, redis, opensearch, storage, nats
 │   │   ├── prisma/                    # schema.prisma, migrations, seed.ts
@@ -122,7 +122,7 @@ zion8/
 │
 ├── docs/
 │   ├── adr/                           # Architecture Decision Records, numbered
-│   ├── architecture/                  # this document, ARCHITECTURE.md, MULTI_TENANCY.md
+│   ├── architecture/                  # this document, ARCHITECTURE.md, MULTI_TENANCY.md, MEMBERSHIP.md, MEMORY_ENGINE.md, ZION_AI.md
 │   ├── standards/                     # coding, testing, review, security standards
 │   ├── runbooks/                      # incident and operational procedures
 │   └── onboarding/                    # day-1 developer guide
@@ -274,8 +274,10 @@ Rules that make this work with hundreds of developers:
 
 - `flutter_lints` plus repo-specific rules; `melos` for the Dart workspace.
 - Feature-first folders, with `core/` for cross-cutting concerns.
-- Generated API client from OpenAPI only; no hand-written HTTP DTOs.
+- Riverpod for state, GoRouter for navigation, Hive for the offline cache and outbox.
+- Generated API client from OpenAPI only; no hand-written HTTP DTOs once `openapi.json` exists.
 - Design values come from generated tokens, never hardcoded color or spacing literals.
+- See `docs/architecture/MOBILE.md` for the full client design.
 
 ### Python (`apps/ai-api`)
 

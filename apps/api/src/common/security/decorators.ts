@@ -1,7 +1,7 @@
 import { SetMetadata, createParamDecorator, type ExecutionContext } from '@nestjs/common';
 import type { Permission, Role } from '@zion8/contracts';
-import type { Request } from 'express';
 import { DomainError } from '../errors/domain-error';
+import { requestFromContext } from './context-request';
 import type { AuthenticatedPrincipal } from './principal';
 
 export const IS_PUBLIC_KEY = 'zion8:isPublic';
@@ -23,17 +23,15 @@ export const RequireRoles = (...roles: Role[]): MethodDecorator & ClassDecorator
 
 export const CurrentPrincipal = createParamDecorator(
   (_data: unknown, context: ExecutionContext): AuthenticatedPrincipal => {
-    const request = context.switchToHttp().getRequest<Request>();
-    if (!request.principal) {
+    const principal = requestFromContext(context)?.principal;
+    if (!principal) {
       throw DomainError.unauthenticated();
     }
-    return request.principal;
+    return principal;
   },
 );
 
 export const OptionalPrincipal = createParamDecorator(
-  (_data: unknown, context: ExecutionContext): AuthenticatedPrincipal | undefined => {
-    const request = context.switchToHttp().getRequest<Request>();
-    return request.principal;
-  },
+  (_data: unknown, context: ExecutionContext): AuthenticatedPrincipal | undefined =>
+    requestFromContext(context)?.principal,
 );

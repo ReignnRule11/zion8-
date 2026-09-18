@@ -22,6 +22,7 @@ interface Metadata {
 
 function buildContext(request: Partial<Request>): ExecutionContext {
   return {
+    getType: () => 'http',
     getHandler: () => 'handler',
     getClass: () => 'controller',
     switchToHttp: () => ({ getRequest: () => request }),

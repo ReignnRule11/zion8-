@@ -14,8 +14,8 @@ async function bootstrap(): Promise<void> {
 
   app.useLogger(logger);
   app.use(helmet());
-  app.use(json({ limit: '1mb' }));
-  app.use(urlencoded({ extended: true, limit: '1mb' }));
+  app.use(json({ limit: '6mb' }));
+  app.use(urlencoded({ extended: true, limit: '6mb' }));
 
   app.enableCors({
     origin: config.corsOrigins.length > 0 ? config.corsOrigins : false,

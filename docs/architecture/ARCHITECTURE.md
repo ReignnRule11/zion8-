@@ -32,15 +32,16 @@ modules with genuinely different scaling and availability profiles.
 ```
                     +-------------------------------+
    Web (Next.js)    |                               |
-   Mobile (Flutter) |        API Gateway            |
+   Mobile (Flutter, |        API Gateway            |
+    offline-first)  |                               |
    Integrations     |      /api/v1 (NestJS)         |
                     +---------------+---------------+
                                     |
         +---------------------------+---------------------------+
         |                           |                           |
-   Auth / Tenancy            Domain Modules              Platform Modules
-   (implemented)          (membership, giving,        (events, search,
-                            events, memory)             notifications)
+     Auth / Tenancy            Domain Modules              Platform Modules
+     (implemented)          (membership, sermon,        (events, search,
+                             memory, accounting)         notifications)
         |                           |                           |
         +---------------------------+---------------------------+
                                     |
@@ -60,14 +61,17 @@ modules with genuinely different scaling and availability profiles.
 | --- | --- | --- |
 | `auth` | Identity, credentials, sessions, refresh rotation, RBAC | Implemented |
 | `tenancy` | Tenant lifecycle, memberships, tenant context resolution | Implemented |
-| `membership` | People, households, pastoral records | Planned |
-| `attendance` | Services, check-in, attendance history | Planned |
+| `onboarding` | Church setup journey, workspace profile, invitations, subscription, branding, member import | Implemented |
+| `membership` | People, households, pastoral records | Implemented |
+| `attendance` | Services, check-in, attendance history | Implemented (under membership) |
 | `events` | Calendar, registration, facilities | Planned |
-| `giving` | Contributions, funds, statements | Planned |
-| `accounting` | Ledgers, budgets, reconciliation | Planned |
+| `giving` | Contributions, funds, statements | Implemented (under accounting) |
+| `accounting` | Ledgers, budgets, giving, payroll, procurement, reconciliation, reports | Implemented |
 | `care` | Prayer requests, counseling, follow-up | Planned |
-| `memory` | Sermons, documents, archives, timeline | Planned |
-| `ai` | Embeddings, semantic search, grounded answers | Planned |
+| `memory` | Institutional archive: artifacts, versions, links, tags | Implemented (Phase A) |
+| `sermon` | Publishing, series, study surface, podcast, shares | Implemented |
+| `ai` | Embeddings, semantic search, grounded answers | In progress |
+| `notifications` | Templates, audiences, campaigns, delivery, inbox, analytics | Implemented |
 
 ## Layers inside a module
 
@@ -121,8 +125,17 @@ which directly serves the "preserve church history" goal.
 - **Defense in depth**: even a bug in a guard cannot cross tenant boundaries, because the
   database refuses the query.
 
-See `docs/architecture/AUTHENTICATION.md` for the full authentication model and
-`docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail.
+See `docs/architecture/AUTHENTICATION.md` for the full authentication model,
+`docs/architecture/MULTI_TENANCY.md` for the isolation mechanism in detail,
+`docs/architecture/CHURCH_ONBOARDING.md` for the onboarding journey that carries a new church from
+registration to a working workspace, `docs/architecture/MEMBERSHIP.md` for the membership domain
+that the workspace is built on, `docs/architecture/MEMORY_ENGINE.md` for the archive,
+`docs/architecture/SERMON.md` for publishing and the study surface,
+`docs/architecture/ACCOUNTING.md` for the ledger, giving, payroll, and reports,
+`docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it,
+`docs/architecture/NOTIFICATIONS.md` for templates, campaigns, durable delivery, and the in-app inbox,
+`docs/architecture/MOBILE.md` for the Flutter client (offline-first, Riverpod, Hive), and
+`docs/architecture/DASHBOARD.md` for the permission-gated executive home that composes those APIs.
 
 ## Observability
 

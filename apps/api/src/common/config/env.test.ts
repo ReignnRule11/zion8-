@@ -28,6 +28,22 @@ describe('environment configuration', () => {
     expect(env.API_GLOBAL_PREFIX).toBe('api');
   });
 
+  it('defaults Zion AI to local providers with a bounded retrieval window', () => {
+    const env = loadEnv(testEnv);
+    expect(env.AI_ENABLED).toBe(true);
+    expect(env.AI_EMBEDDING_PROVIDER).toBe('deterministic');
+    expect(env.AI_EMBEDDING_BASE_URL).toBe('');
+    expect(env.AI_CHAT_BASE_URL).toBe('');
+    expect(env.AI_EMBEDDING_DIMENSIONS).toBe(1536);
+    expect(env.AI_CITATION_MIN_SUPPORT).toBe(0.5);
+  });
+
+  it('rejects an out-of-range citation support threshold', () => {
+    expect(() => loadEnv({ ...testEnv, AI_CITATION_MIN_SUPPORT: '1.5' })).toThrow(
+      /AI_CITATION_MIN_SUPPORT/,
+    );
+  });
+
   it('rejects a short JWT secret', () => {
     expect(() => loadEnv({ ...testEnv, JWT_ACCESS_SECRET: 'too-short' })).toThrow(
       /JWT_ACCESS_SECRET/,

@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { AppConfigService } from '../../common/config/app-config.service';
 import { AppLogger } from '../../common/logger/app-logger.service';
-import { NotificationService, type EmailMessage, type SmsMessage } from './notification.service';
+import {
+  NotificationService,
+  type EmailMessage,
+  type PushMessage,
+  type SmsMessage,
+  type WhatsAppMessage,
+} from './notification.service';
 
 export interface CapturedNotification {
-  channel: 'email' | 'sms';
+  channel: 'email' | 'sms' | 'whatsapp' | 'push';
   to: string;
   subject: string | null;
   body: string;
@@ -49,11 +55,34 @@ export class LoggingNotificationService extends NotificationService {
     });
   }
 
+  async sendWhatsApp(message: WhatsAppMessage): Promise<void> {
+    this.capture({
+      channel: 'whatsapp',
+      to: message.to,
+      subject: null,
+      body: message.body,
+      sentAt: new Date(),
+    });
+  }
+
+  async sendPush(message: PushMessage): Promise<void> {
+    this.capture({
+      channel: 'push',
+      to: message.token,
+      subject: message.title,
+      body: message.body,
+      sentAt: new Date(),
+    });
+  }
+
   recent(limit = 10): CapturedNotification[] {
     return this.buffer.slice(-limit);
   }
 
-  lastFor(recipient: string, channel?: 'email' | 'sms'): CapturedNotification | null {
+  lastFor(
+    recipient: string,
+    channel?: CapturedNotification['channel'],
+  ): CapturedNotification | null {
     for (let index = this.buffer.length - 1; index >= 0; index -= 1) {
       const entry = this.buffer[index];
       if (!entry) continue;

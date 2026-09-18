@@ -22,6 +22,10 @@ export class AppConfigService {
     return this.env.NODE_ENV === 'production';
   }
 
+  get isTest(): boolean {
+    return this.env.NODE_ENV === 'test';
+  }
+
   get port(): number {
     return this.env.PORT;
   }
@@ -72,6 +76,10 @@ export class AppConfigService {
 
   get magicLinkTtlSeconds(): number {
     return this.env.MAGIC_LINK_TTL_SECONDS;
+  }
+
+  get invitationTtlSeconds(): number {
+    return this.env.INVITATION_TTL_SECONDS;
   }
 
   get mfaChallengeTtlSeconds(): number {
@@ -130,12 +138,148 @@ export class AppConfigService {
     return this.env.LOG_LEVEL;
   }
 
+  get llmSummary(): {
+    baseUrl: string;
+    apiKey: string;
+    model: string;
+    timeoutMs: number;
+    configured: boolean;
+  } {
+    return {
+      baseUrl: this.env.USER_LLM_BASE_URL,
+      apiKey: this.env.USER_LLM_API_KEY,
+      model: this.env.USER_LLM_MODEL,
+      timeoutMs: this.env.LLM_SUMMARY_TIMEOUT_MS,
+      configured: this.env.USER_LLM_BASE_URL.length > 0,
+    };
+  }
+
+  get storageDir(): string {
+    return this.env.STORAGE_DIR;
+  }
+
+  get outbox(): {
+    relayEnabled: boolean;
+    pollIntervalMs: number;
+    batchSize: number;
+    webhookUrl: string;
+  } {
+    return {
+      relayEnabled: this.env.OUTBOX_RELAY_ENABLED && !this.isTest,
+      pollIntervalMs: this.env.OUTBOX_POLL_INTERVAL_MS,
+      batchSize: this.env.OUTBOX_BATCH_SIZE,
+      webhookUrl: this.env.EVENT_WEBHOOK_URL,
+    };
+  }
+
+  get memoryWorker(): {
+    enabled: boolean;
+    intervalMs: number;
+    batchSize: number;
+  } {
+    return {
+      enabled: this.env.MEMORY_WORKER_ENABLED && !this.isTest,
+      intervalMs: this.env.MEMORY_WORKER_INTERVAL_MS,
+      batchSize: this.env.MEMORY_WORKER_BATCH_SIZE,
+    };
+  }
+
+  /**
+   * Whether an optional memory capability is configured. A missing endpoint is
+   * an explicit "not available" signal: jobs that need it become BLOCKED and
+   * visible to an administrator instead of being reported as successful.
+   */
+  get memoryCapabilities(): { ocr: boolean; transcription: boolean } {
+    return {
+      ocr: this.env.MEMORY_OCR_ENDPOINT.length > 0,
+      transcription: this.env.MEMORY_STT_ENDPOINT.length > 0,
+    };
+  }
+
+  get ai(): {
+    enabled: boolean;
+    embedding: {
+      provider: string;
+      model: string;
+      baseUrl: string;
+      apiKey: string;
+      dimensions: number;
+    };
+    chat: {
+      provider: string;
+      model: string;
+      baseUrl: string;
+      apiKey: string;
+    };
+    retrieval: {
+      topK: number;
+      candidates: number;
+      citationMinSupport: number;
+    };
+    queryTimeoutMs: number;
+    insightMinCohort: number;
+  } {
+    return {
+      enabled: this.env.AI_ENABLED,
+      embedding: {
+        provider: this.env.AI_EMBEDDING_PROVIDER,
+        model: this.env.AI_EMBEDDING_MODEL,
+        baseUrl: this.env.AI_EMBEDDING_BASE_URL,
+        apiKey: this.env.AI_EMBEDDING_API_KEY,
+        dimensions: this.env.AI_EMBEDDING_DIMENSIONS,
+      },
+      chat: {
+        provider: this.env.AI_CHAT_PROVIDER,
+        model: this.env.AI_CHAT_MODEL,
+        baseUrl: this.env.AI_CHAT_BASE_URL,
+        apiKey: this.env.AI_CHAT_API_KEY,
+      },
+      retrieval: {
+        topK: this.env.AI_RETRIEVAL_TOP_K,
+        candidates: this.env.AI_RETRIEVAL_CANDIDATES,
+        citationMinSupport: this.env.AI_CITATION_MIN_SUPPORT,
+      },
+      queryTimeoutMs: this.env.AI_QUERY_TIMEOUT_MS,
+      insightMinCohort: this.env.AI_INSIGHT_MIN_COHORT,
+    };
+  }
+
+  /**
+   * Whether an optional AI runtime is configured. Chat is separate from
+   * embedding because retrieval does not depend on generation: a corpus can be
+   * indexed and searched with no chat provider at all.
+   */
+  get aiCapabilities(): { chat: boolean; embeddingHttp: boolean } {
+    return {
+      chat: this.env.AI_CHAT_BASE_URL.length > 0,
+      embeddingHttp: this.env.AI_EMBEDDING_BASE_URL.length > 0,
+    };
+  }
+
+  get aiWorker(): { enabled: boolean; intervalMs: number; batchSize: number } {
+    return {
+      enabled: this.env.AI_WORKER_ENABLED && !this.isTest,
+      intervalMs: this.env.AI_WORKER_INTERVAL_MS,
+      batchSize: this.env.AI_WORKER_BATCH_SIZE,
+    };
+  }
+
+  get sermonWorker(): { enabled: boolean; intervalMs: number; batchSize: number } {
+    return {
+      enabled: this.env.SERMON_WORKER_ENABLED && !this.isTest,
+      intervalMs: this.env.SERMON_WORKER_INTERVAL_MS,
+      batchSize: this.env.SERMON_WORKER_BATCH_SIZE,
+    };
+  }
+
   get notifications(): {
     emailFrom: string;
     resendApiKey: string;
     smsFrom: string;
     twilioAccountSid: string;
     twilioAuthToken: string;
+    whatsappFrom: string;
+    pushEndpoint: string;
   } {
     return {
       emailFrom: this.env.EMAIL_FROM_ADDRESS,
@@ -143,6 +287,16 @@ export class AppConfigService {
       smsFrom: this.env.SMS_FROM_NUMBER,
       twilioAccountSid: this.env.TWILIO_ACCOUNT_SID,
       twilioAuthToken: this.env.TWILIO_AUTH_TOKEN,
+      whatsappFrom: this.env.WHATSAPP_FROM_NUMBER,
+      pushEndpoint: this.env.NOTIFICATION_PUSH_ENDPOINT,
+    };
+  }
+
+  get notificationWorker(): { enabled: boolean; intervalMs: number; batchSize: number } {
+    return {
+      enabled: this.env.NOTIFICATION_WORKER_ENABLED && !this.isTest,
+      intervalMs: this.env.NOTIFICATION_WORKER_INTERVAL_MS,
+      batchSize: this.env.NOTIFICATION_WORKER_BATCH_SIZE,
     };
   }
 }
