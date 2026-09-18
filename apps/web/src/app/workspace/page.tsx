@@ -50,7 +50,17 @@ export default async function WorkspacePage() {
             {profile.principal.isPlatformAdmin ? ' · Platform Administrator' : ''}
           </p>
         </div>
-        <SignOutButton />
+        <div className="flex items-center gap-3">
+          {profile.activeTenant ? (
+            <Link
+              href="/home"
+              className="rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/30"
+            >
+              Home
+            </Link>
+          ) : null}
+          <SignOutButton />
+        </div>
       </header>
 
       {onboarding && !onboarding.completed ? (

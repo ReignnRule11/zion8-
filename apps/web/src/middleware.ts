@@ -20,6 +20,7 @@ export const config = {
   matcher: [
     '/workspace/:path*',
     '/onboarding/:path*',
+    '/home',
     '/people/:path*',
     '/people',
     '/community/:path*',

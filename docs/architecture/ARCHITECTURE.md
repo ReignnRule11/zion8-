@@ -131,8 +131,9 @@ registration to a working workspace, `docs/architecture/MEMBERSHIP.md` for the m
 that the workspace is built on, `docs/architecture/MEMORY_ENGINE.md` for the archive,
 `docs/architecture/SERMON.md` for publishing and the study surface,
 `docs/architecture/ACCOUNTING.md` for the ledger, giving, payroll, and reports,
-`docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it, and
-`docs/architecture/MOBILE.md` for the Flutter client (offline-first, Riverpod, Hive).
+`docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it,
+`docs/architecture/MOBILE.md` for the Flutter client (offline-first, Riverpod, Hive), and
+`docs/architecture/DASHBOARD.md` for the permission-gated executive home that composes those APIs.
 
 ## Observability
 
