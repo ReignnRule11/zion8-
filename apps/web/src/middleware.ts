@@ -27,5 +27,7 @@ export const config = {
     '/memory',
     '/sermons/:path*',
     '/sermons',
+    '/accounting/:path*',
+    '/accounting',
   ],
 };

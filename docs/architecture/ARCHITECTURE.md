@@ -38,9 +38,9 @@ modules with genuinely different scaling and availability profiles.
                                     |
         +---------------------------+---------------------------+
         |                           |                           |
-    Auth / Tenancy            Domain Modules              Platform Modules
-    (implemented)          (membership, sermon,        (events, search,
-                            memory, giving)             notifications)
+     Auth / Tenancy            Domain Modules              Platform Modules
+     (implemented)          (membership, sermon,        (events, search,
+                             memory, accounting)         notifications)
         |                           |                           |
         +---------------------------+---------------------------+
                                     |
@@ -62,10 +62,10 @@ modules with genuinely different scaling and availability profiles.
 | `tenancy` | Tenant lifecycle, memberships, tenant context resolution | Implemented |
 | `onboarding` | Church setup journey, workspace profile, invitations, subscription, branding, member import | Implemented |
 | `membership` | People, households, pastoral records | Implemented |
-| `attendance` | Services, check-in, attendance history | Planned |
+| `attendance` | Services, check-in, attendance history | Implemented (under membership) |
 | `events` | Calendar, registration, facilities | Planned |
-| `giving` | Contributions, funds, statements | Planned |
-| `accounting` | Ledgers, budgets, reconciliation | Planned |
+| `giving` | Contributions, funds, statements | Implemented (under accounting) |
+| `accounting` | Ledgers, budgets, giving, payroll, procurement, reconciliation, reports | Implemented |
 | `care` | Prayer requests, counseling, follow-up | Planned |
 | `memory` | Institutional archive: artifacts, versions, links, tags | Implemented (Phase A) |
 | `sermon` | Publishing, series, study surface, podcast, shares | Implemented |
@@ -128,7 +128,8 @@ See `docs/architecture/AUTHENTICATION.md` for the full authentication model,
 `docs/architecture/CHURCH_ONBOARDING.md` for the onboarding journey that carries a new church from
 registration to a working workspace, `docs/architecture/MEMBERSHIP.md` for the membership domain
 that the workspace is built on, `docs/architecture/MEMORY_ENGINE.md` for the archive,
-`docs/architecture/SERMON.md` for publishing and the study surface, and
+`docs/architecture/SERMON.md` for publishing and the study surface,
+`docs/architecture/ACCOUNTING.md` for the ledger, giving, payroll, and reports, and
 `docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it.
 
 ## Observability

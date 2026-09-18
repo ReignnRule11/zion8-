@@ -1,21 +1,41 @@
 import {
+  accountPageSchema,
+  accountSchema,
   apiErrorSchema,
   attendanceRecordSchema,
+  bankAccountPageSchema,
+  bankAccountSchema,
+  bankTransactionPageSchema,
+  bankTransactionSchema,
+  billPageSchema,
+  billSchema,
+  budgetPageSchema,
+  budgetSchema,
   attendanceSessionPageSchema,
   attendanceSessionResponseSchema,
   brandThemeResponseSchema,
   churchProfileResponseSchema,
+  contributionPageSchema,
+  contributionSchema,
   departmentMemberSchema,
   departmentPageSchema,
   departmentResponseSchema,
   documentDownloadSchema,
   documentPageSchema,
   documentResponseSchema,
+  expensePageSchema,
+  expenseSchema,
   familyPageSchema,
+  fiscalPeriodPageSchema,
+  fiscalPeriodSchema,
+  fundPageSchema,
+  fundSchema,
   familyResponseSchema,
   invitationListResponseSchema,
   invitationPreviewSchema,
   invitationSummarySchema,
+  journalPageSchema,
+  journalSchema,
   loginResultSchema,
   meResponseSchema,
   memberAiSummaryResponseSchema,
@@ -32,6 +52,14 @@ import {
   memoryJobSummarySchema,
   memoryReprocessResponseSchema,
   onboardingStateSchema,
+  payrollEmployeePageSchema,
+  payrollEmployeeSchema,
+  payrollRunPageSchema,
+  payrollRunSchema,
+  projectPageSchema,
+  projectSchema,
+  purchaseOrderPageSchema,
+  purchaseOrderSchema,
   sermonGenerateResponseSchema,
   sermonJobSummarySchema,
   sermonNotePageSchema,
@@ -48,7 +76,10 @@ import {
   planCatalogResponseSchema,
   relationshipGraphSchema,
   relationshipPageSchema,
+  reconciliationPageSchema,
+  reconciliationSchema,
   relationshipResponseSchema,
+  reportSchema,
   sessionListResponseSchema,
   sessionSchema,
   subscriptionSummarySchema,
@@ -60,7 +91,14 @@ import {
   volunteerAssignmentResponseSchema,
   volunteerRolePageSchema,
   volunteerRoleResponseSchema,
+  vendorPageSchema,
+  vendorSchema,
   type AcceptInvitationRequest,
+  type Account,
+  type AccountCreateRequest,
+  type AccountListQuery,
+  type AccountPage,
+  type AccountUpdateRequest,
   type AttendanceBulkMarkRequest,
   type AttendanceMarkRequest,
   type AttendanceRecord,
@@ -69,11 +107,32 @@ import {
   type AttendanceSessionRequest,
   type AttendanceSessionResponse,
   type AttendanceSessionUpdateRequest,
+  type BankAccount,
+  type BankAccountCreateRequest,
+  type BankAccountListQuery,
+  type BankAccountPage,
+  type BankTransaction,
+  type BankTransactionCreateRequest,
+  type BankTransactionListQuery,
+  type BankTransactionPage,
+  type Bill,
+  type BillCreateRequest,
+  type BillListQuery,
+  type BillPage,
   type BrandThemeRequest,
+  type Budget,
+  type BudgetCreateRequest,
+  type BudgetListQuery,
+  type BudgetPage,
   type BrandThemeResponse,
   type ChurchProfileRequest,
   type ChurchProfileResponse,
   type CompleteOnboardingRequest,
+  type Contribution,
+  type ContributionCreateRequest,
+  type ContributionListQuery,
+  type ContributionPage,
+  type ContributionRefundRequest,
   type DeclineInvitationRequest,
   type DepartmentListQuery,
   type DepartmentMember,
@@ -89,7 +148,21 @@ import {
   type DocumentResponse,
   type DocumentUpdateRequest,
   type DocumentUploadRequest,
+  type Expense,
+  type ExpenseCreateRequest,
+  type ExpenseDecisionRequest,
+  type ExpenseListQuery,
+  type ExpensePage,
   type FamilyListQuery,
+  type FiscalPeriod,
+  type FiscalPeriodCreateRequest,
+  type FiscalPeriodListQuery,
+  type FiscalPeriodPage,
+  type Fund,
+  type FundCreateRequest,
+  type FundListQuery,
+  type FundPage,
+  type FundUpdateRequest,
   type FamilyMemberAddRequest,
   type FamilyPage,
   type FamilyRequest,
@@ -100,6 +173,11 @@ import {
   type InvitationPreview,
   type InvitationSummary,
   type InviteAdministratorsRequest,
+  type Journal,
+  type JournalCreateRequest,
+  type JournalListQuery,
+  type JournalPage,
+  type JournalVoidRequest,
   type LoginRequest,
   type LoginResult,
   type LogoutRequest,
@@ -130,8 +208,33 @@ import {
   type MemoryVersionQuery,
   type OnboardingState,
   type OnboardingSummary,
+  type PayrollEmployee,
+  type PayrollEmployeeCreateRequest,
+  type PayrollEmployeeListQuery,
+  type PayrollEmployeePage,
+  type PayrollEmployeeUpdateRequest,
+  type PayrollRun,
+  type PayrollRunCreateRequest,
+  type PayrollRunListQuery,
+  type PayrollRunPage,
   type PlanCatalogResponse,
+  type Project,
+  type ProjectCreateRequest,
+  type ProjectListQuery,
+  type ProjectPage,
+  type ProjectUpdateRequest,
+  type PurchaseOrder,
+  type PurchaseOrderCreateRequest,
+  type PurchaseOrderListQuery,
+  type PurchaseOrderPage,
   type RefreshRequest,
+  type Reconciliation,
+  type ReconciliationCreateRequest,
+  type ReconciliationListQuery,
+  type ReconciliationMatchRequest,
+  type ReconciliationPage,
+  type Report,
+  type ReportQuery,
   type RegisterChurchRequest,
   type RelationshipGraph,
   type RelationshipGraphQuery,
@@ -190,6 +293,11 @@ import {
   type VolunteerRoleRequest,
   type VolunteerRoleResponse,
   type VolunteerRoleUpdateRequest,
+  type Vendor,
+  type VendorCreateRequest,
+  type VendorListQuery,
+  type VendorPage,
+  type VendorUpdateRequest,
 } from '@zion8/contracts';
 import { z } from 'zod';
 import { apiBaseUrl } from './env';
@@ -1658,6 +1766,683 @@ export const api = {
       method: 'GET',
       path: `/public/sermons/shares/${token}`,
       schema: sermonResponseSchema,
+    });
+  },
+
+  // Accounting --------------------------------------------------------------
+
+  createAccount(token: string, input: AccountCreateRequest): Promise<Account> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/accounts',
+      schema: accountSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listAccounts(token: string, query?: AccountListQuery): Promise<AccountPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/accounts${toQuery(query)}`,
+      schema: accountPageSchema,
+      token,
+    });
+  },
+
+  getAccount(token: string, accountId: string): Promise<Account> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/accounts/${accountId}`,
+      schema: accountSchema,
+      token,
+    });
+  },
+
+  updateAccount(token: string, accountId: string, input: AccountUpdateRequest): Promise<Account> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/accounting/accounts/${accountId}`,
+      schema: accountSchema,
+      body: input,
+      token,
+    });
+  },
+
+  createPeriod(token: string, input: FiscalPeriodCreateRequest): Promise<FiscalPeriod> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/periods',
+      schema: fiscalPeriodSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listPeriods(token: string, query?: FiscalPeriodListQuery): Promise<FiscalPeriodPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/periods${toQuery(query)}`,
+      schema: fiscalPeriodPageSchema,
+      token,
+    });
+  },
+
+  closePeriod(token: string, periodId: string): Promise<FiscalPeriod> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/periods/${periodId}/close`,
+      schema: fiscalPeriodSchema,
+      token,
+    });
+  },
+
+  createJournal(token: string, input: JournalCreateRequest): Promise<Journal> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/journals',
+      schema: journalSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listJournals(token: string, query?: JournalListQuery): Promise<JournalPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/journals${toQuery(query)}`,
+      schema: journalPageSchema,
+      token,
+    });
+  },
+
+  getJournal(token: string, journalId: string): Promise<Journal> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/journals/${journalId}`,
+      schema: journalSchema,
+      token,
+    });
+  },
+
+  postJournal(token: string, journalId: string): Promise<Journal> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/journals/${journalId}/post`,
+      schema: journalSchema,
+      token,
+    });
+  },
+
+  voidJournal(token: string, journalId: string, input: JournalVoidRequest): Promise<Journal> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/journals/${journalId}/void`,
+      schema: journalSchema,
+      body: input,
+      token,
+    });
+  },
+
+  createFund(token: string, input: FundCreateRequest): Promise<Fund> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/funds',
+      schema: fundSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listFunds(token: string, query?: FundListQuery): Promise<FundPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/funds${toQuery(query)}`,
+      schema: fundPageSchema,
+      token,
+    });
+  },
+
+  getFund(token: string, fundId: string): Promise<Fund> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/funds/${fundId}`,
+      schema: fundSchema,
+      token,
+    });
+  },
+
+  updateFund(token: string, fundId: string, input: FundUpdateRequest): Promise<Fund> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/accounting/funds/${fundId}`,
+      schema: fundSchema,
+      body: input,
+      token,
+    });
+  },
+
+  recordContribution(token: string, input: ContributionCreateRequest): Promise<Contribution> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/contributions',
+      schema: contributionSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listContributions(token: string, query?: ContributionListQuery): Promise<ContributionPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/contributions${toQuery(query)}`,
+      schema: contributionPageSchema,
+      token,
+    });
+  },
+
+  getContribution(token: string, contributionId: string): Promise<Contribution> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/contributions/${contributionId}`,
+      schema: contributionSchema,
+      token,
+    });
+  },
+
+  refundContribution(
+    token: string,
+    contributionId: string,
+    input: ContributionRefundRequest,
+  ): Promise<Contribution> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/contributions/${contributionId}/refund`,
+      schema: contributionSchema,
+      body: input,
+      token,
+    });
+  },
+
+  createPayrollEmployee(
+    token: string,
+    input: PayrollEmployeeCreateRequest,
+  ): Promise<PayrollEmployee> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/payroll/employees',
+      schema: payrollEmployeeSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listPayrollEmployees(
+    token: string,
+    query?: PayrollEmployeeListQuery,
+  ): Promise<PayrollEmployeePage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/payroll/employees${toQuery(query)}`,
+      schema: payrollEmployeePageSchema,
+      token,
+    });
+  },
+
+  getPayrollEmployee(token: string, employeeId: string): Promise<PayrollEmployee> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/payroll/employees/${employeeId}`,
+      schema: payrollEmployeeSchema,
+      token,
+    });
+  },
+
+  updatePayrollEmployee(
+    token: string,
+    employeeId: string,
+    input: PayrollEmployeeUpdateRequest,
+  ): Promise<PayrollEmployee> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/accounting/payroll/employees/${employeeId}`,
+      schema: payrollEmployeeSchema,
+      body: input,
+      token,
+    });
+  },
+
+  createPayrollRun(token: string, input: PayrollRunCreateRequest): Promise<PayrollRun> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/payroll/runs',
+      schema: payrollRunSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listPayrollRuns(token: string, query?: PayrollRunListQuery): Promise<PayrollRunPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/payroll/runs${toQuery(query)}`,
+      schema: payrollRunPageSchema,
+      token,
+    });
+  },
+
+  getPayrollRun(token: string, runId: string): Promise<PayrollRun> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/payroll/runs/${runId}`,
+      schema: payrollRunSchema,
+      token,
+    });
+  },
+
+  approvePayrollRun(token: string, runId: string): Promise<PayrollRun> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/payroll/runs/${runId}/approve`,
+      schema: payrollRunSchema,
+      token,
+    });
+  },
+
+  postPayrollRun(token: string, runId: string): Promise<PayrollRun> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/payroll/runs/${runId}/post`,
+      schema: payrollRunSchema,
+      token,
+    });
+  },
+
+  createBudget(token: string, input: BudgetCreateRequest): Promise<Budget> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/budgets',
+      schema: budgetSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listBudgets(token: string, query?: BudgetListQuery): Promise<BudgetPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/budgets${toQuery(query)}`,
+      schema: budgetPageSchema,
+      token,
+    });
+  },
+
+  getBudget(token: string, budgetId: string): Promise<Budget> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/budgets/${budgetId}`,
+      schema: budgetSchema,
+      token,
+    });
+  },
+
+  activateBudget(token: string, budgetId: string): Promise<Budget> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/budgets/${budgetId}/activate`,
+      schema: budgetSchema,
+      token,
+    });
+  },
+
+  createProject(token: string, input: ProjectCreateRequest): Promise<Project> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/projects',
+      schema: projectSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listProjects(token: string, query?: ProjectListQuery): Promise<ProjectPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/projects${toQuery(query)}`,
+      schema: projectPageSchema,
+      token,
+    });
+  },
+
+  getProject(token: string, projectId: string): Promise<Project> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/projects/${projectId}`,
+      schema: projectSchema,
+      token,
+    });
+  },
+
+  updateProject(token: string, projectId: string, input: ProjectUpdateRequest): Promise<Project> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/accounting/projects/${projectId}`,
+      schema: projectSchema,
+      body: input,
+      token,
+    });
+  },
+
+  createVendor(token: string, input: VendorCreateRequest): Promise<Vendor> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/vendors',
+      schema: vendorSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listVendors(token: string, query?: VendorListQuery): Promise<VendorPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/vendors${toQuery(query)}`,
+      schema: vendorPageSchema,
+      token,
+    });
+  },
+
+  getVendor(token: string, vendorId: string): Promise<Vendor> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/vendors/${vendorId}`,
+      schema: vendorSchema,
+      token,
+    });
+  },
+
+  updateVendor(token: string, vendorId: string, input: VendorUpdateRequest): Promise<Vendor> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/accounting/vendors/${vendorId}`,
+      schema: vendorSchema,
+      body: input,
+      token,
+    });
+  },
+
+  createPurchaseOrder(token: string, input: PurchaseOrderCreateRequest): Promise<PurchaseOrder> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/purchase-orders',
+      schema: purchaseOrderSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listPurchaseOrders(token: string, query?: PurchaseOrderListQuery): Promise<PurchaseOrderPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/purchase-orders${toQuery(query)}`,
+      schema: purchaseOrderPageSchema,
+      token,
+    });
+  },
+
+  getPurchaseOrder(token: string, purchaseOrderId: string): Promise<PurchaseOrder> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/purchase-orders/${purchaseOrderId}`,
+      schema: purchaseOrderSchema,
+      token,
+    });
+  },
+
+  submitPurchaseOrder(token: string, purchaseOrderId: string): Promise<PurchaseOrder> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/purchase-orders/${purchaseOrderId}/submit`,
+      schema: purchaseOrderSchema,
+      token,
+    });
+  },
+
+  approvePurchaseOrder(token: string, purchaseOrderId: string): Promise<PurchaseOrder> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/purchase-orders/${purchaseOrderId}/approve`,
+      schema: purchaseOrderSchema,
+      token,
+    });
+  },
+
+  createBill(token: string, input: BillCreateRequest): Promise<Bill> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/bills',
+      schema: billSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listBills(token: string, query?: BillListQuery): Promise<BillPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/bills${toQuery(query)}`,
+      schema: billPageSchema,
+      token,
+    });
+  },
+
+  getBill(token: string, billId: string): Promise<Bill> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/bills/${billId}`,
+      schema: billSchema,
+      token,
+    });
+  },
+
+  approveBill(token: string, billId: string): Promise<Bill> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/bills/${billId}/approve`,
+      schema: billSchema,
+      token,
+    });
+  },
+
+  postBill(token: string, billId: string): Promise<Bill> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/bills/${billId}/post`,
+      schema: billSchema,
+      token,
+    });
+  },
+
+  createExpense(token: string, input: ExpenseCreateRequest): Promise<Expense> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/expenses',
+      schema: expenseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listExpenses(token: string, query?: ExpenseListQuery): Promise<ExpensePage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/expenses${toQuery(query)}`,
+      schema: expensePageSchema,
+      token,
+    });
+  },
+
+  getExpense(token: string, expenseId: string): Promise<Expense> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/expenses/${expenseId}`,
+      schema: expenseSchema,
+      token,
+    });
+  },
+
+  submitExpense(token: string, expenseId: string): Promise<Expense> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/expenses/${expenseId}/submit`,
+      schema: expenseSchema,
+      token,
+    });
+  },
+
+  decideExpense(
+    token: string,
+    expenseId: string,
+    input: ExpenseDecisionRequest,
+  ): Promise<Expense> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/expenses/${expenseId}/decide`,
+      schema: expenseSchema,
+      body: input,
+      token,
+    });
+  },
+
+  postExpense(token: string, expenseId: string): Promise<Expense> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/expenses/${expenseId}/post`,
+      schema: expenseSchema,
+      token,
+    });
+  },
+
+  createBankAccount(token: string, input: BankAccountCreateRequest): Promise<BankAccount> {
+    return apiRequest({
+      method: 'POST',
+      path: '/accounting/banks',
+      schema: bankAccountSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listBankAccounts(token: string, query?: BankAccountListQuery): Promise<BankAccountPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/banks${toQuery(query)}`,
+      schema: bankAccountPageSchema,
+      token,
+    });
+  },
+
+  getBankAccount(token: string, bankAccountId: string): Promise<BankAccount> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/banks/${bankAccountId}`,
+      schema: bankAccountSchema,
+      token,
+    });
+  },
+
+  addBankTransaction(
+    token: string,
+    bankAccountId: string,
+    input: BankTransactionCreateRequest,
+  ): Promise<BankTransaction> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/banks/${bankAccountId}/transactions`,
+      schema: bankTransactionSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listBankTransactions(
+    token: string,
+    bankAccountId: string,
+    query?: BankTransactionListQuery,
+  ): Promise<BankTransactionPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/banks/${bankAccountId}/transactions${toQuery(query)}`,
+      schema: bankTransactionPageSchema,
+      token,
+    });
+  },
+
+  createReconciliation(
+    token: string,
+    bankAccountId: string,
+    input: ReconciliationCreateRequest,
+  ): Promise<Reconciliation> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/banks/${bankAccountId}/reconciliations`,
+      schema: reconciliationSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listReconciliations(
+    token: string,
+    bankAccountId: string,
+    query?: ReconciliationListQuery,
+  ): Promise<ReconciliationPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/banks/${bankAccountId}/reconciliations${toQuery(query)}`,
+      schema: reconciliationPageSchema,
+      token,
+    });
+  },
+
+  getReconciliation(token: string, reconciliationId: string): Promise<Reconciliation> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/reconciliations/${reconciliationId}`,
+      schema: reconciliationSchema,
+      token,
+    });
+  },
+
+  matchReconciliation(
+    token: string,
+    reconciliationId: string,
+    input: ReconciliationMatchRequest,
+  ): Promise<Reconciliation> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/reconciliations/${reconciliationId}/match`,
+      schema: reconciliationSchema,
+      body: input,
+      token,
+    });
+  },
+
+  completeReconciliation(token: string, reconciliationId: string): Promise<Reconciliation> {
+    return apiRequest({
+      method: 'POST',
+      path: `/accounting/reconciliations/${reconciliationId}/complete`,
+      schema: reconciliationSchema,
+      token,
+    });
+  },
+
+  getAccountingReport(token: string, query: ReportQuery): Promise<Report> {
+    return apiRequest({
+      method: 'GET',
+      path: `/accounting/reports${toQuery(query)}`,
+      schema: reportSchema,
+      token,
     });
   },
 };

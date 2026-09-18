@@ -13,6 +13,7 @@ const LINKS = [
   { href: '/community/relationships', label: 'Relationships' },
   { href: '/memory', label: 'Memory' },
   { href: '/sermons', label: 'Sermons' },
+  { href: '/accounting', label: 'Accounting' },
 ] as const;
 
 export function SectionNav() {

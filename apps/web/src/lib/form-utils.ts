@@ -24,6 +24,20 @@ export function optionalText(formData: FormData, key: string): string | undefine
   return value.length > 0 ? value : undefined;
 }
 
+/** Converts a decimal currency field (e.g. `12.50`) into integer minor units. */
+export function dollarsToMinor(formData: FormData, key: string): number | undefined {
+  const value = optionalText(formData, key);
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return Number.NaN;
+  return Math.round(parsed * 100);
+}
+
+/** Same as dollarsToMinor, but keeps a leading minus for statement balances. */
+export function signedDollarsToMinor(formData: FormData, key: string): number | undefined {
+  return dollarsToMinor(formData, key);
+}
+
 export function checkbox(formData: FormData, key: string): boolean {
   const value = formData.get(key);
   return value === 'on' || value === 'true' || value === '1';
