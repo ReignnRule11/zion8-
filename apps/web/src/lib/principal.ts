@@ -34,3 +34,8 @@ export function can(me: MeResponse, permission: Permission): boolean {
 export function canAll(me: MeResponse, permissions: readonly Permission[]): boolean {
   return permissions.every((permission) => me.permissions.includes(permission));
 }
+
+/** True when the principal holds at least one of the listed permissions. */
+export function canAny(me: MeResponse, permissions: readonly Permission[]): boolean {
+  return permissions.some((permission) => me.permissions.includes(permission));
+}
