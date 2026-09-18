@@ -55,7 +55,7 @@ zion8/
 │   │   ├── assets/
 │   │   └── pubspec.yaml
 │   ├── api/                           # NestJS modular monolith (HTTP source of truth)
-│   │   ├── src/modules/               # auth, tenancy, onboarding, membership, attendance, events, giving, care, memory, sermon, ai
+│   │   ├── src/modules/               # auth, tenancy, onboarding, membership, attendance, events, accounting, care, memory, sermon, ai
 │   │   ├── src/common/
 │   │   ├── src/infrastructure/        # prisma, redis, opensearch, storage, nats
 │   │   ├── prisma/                    # schema.prisma, migrations, seed.ts

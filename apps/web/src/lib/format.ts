@@ -58,6 +58,11 @@ export function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+/** Renders integer minor units as a currency string such as `$12.50`. */
+export function formatMoney(minor: number, currency = 'USD'): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(minor / 100);
+}
+
 export function initials(firstName: string, lastName: string): string {
   const first = firstName.trim().charAt(0);
   const last = lastName.trim().charAt(0);
