@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers
+  namespace: zion8
+  labels:
+    app.kubernetes.io/name: workers
+  annotations:
+    secret.reloader.stakater.com/reload: zion8-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: workers
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: workers
+    spec:
+      serviceAccountName: zion8-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: workers
+          image: ghcr.io/reignnrule11/zion8-api:main
+          ports:
+            - name: http
+              containerPort: 4000
+          envFrom:
+            - configMapRef:
+                name: zion8-api
+            - secretRef:
+                name: zion8-api
+          env:
+            - name: OUTBOX_RELAY_ENABLED
+              value: 'true'
+            - name: MEMORY_WORKER_ENABLED
+              value: 'true'
+            - name: AI_WORKER_ENABLED
+              value: 'true'
+            - name: SERMON_WORKER_ENABLED
+              value: 'true'
+            - name: NOTIFICATION_WORKER_ENABLED
+              value: 'true'
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: http
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/ready
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: '1'
+              memory: 1Gi
+      volumes:
+        - name: tmp
+          emptyDir: {}

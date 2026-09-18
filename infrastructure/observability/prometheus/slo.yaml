@@ -1,0 +1,40 @@
+groups:
+  - name: zion8-slo
+    rules:
+      - alert: ApiErrorBudgetBurnFast
+        expr: |
+          (
+            sum(rate(http_request_duration_seconds_count{job="api",status=~"5.."}[1h]))
+            /
+            sum(rate(http_request_duration_seconds_count{job="api"}[1h]))
+          ) > 0.02
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: API burned 2% of monthly error budget in 1h.
+
+      - alert: ApiP95Latency
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job="api"}[5m]))) > 0.8
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: API p95 write latency above 800ms.
+
+      - alert: NotificationQueueBacklog
+        expr: zion8_notification_messages_pending{status="PENDING"} > 1000
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Notification claim queue is backing up.
+
+      - alert: PostgresDown
+        expr: up{job="api"} == 0 or zion8_dependency_up{name="postgres"} == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: API cannot reach PostgreSQL.

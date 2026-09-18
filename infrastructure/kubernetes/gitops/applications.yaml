@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: zion8
+  namespace: argocd
+spec:
+  description: Zion8 staging and production
+  sourceRepos:
+    - https://github.com/ReignnRule11/zion8-
+  destinations:
+    - namespace: zion8
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zion8-staging
+  namespace: argocd
+spec:
+  project: zion8
+  source:
+    repoURL: https://github.com/ReignnRule11/zion8-
+    targetRevision: main
+    path: infrastructure/kubernetes/overlays/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: zion8
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zion8-production
+  namespace: argocd
+spec:
+  project: zion8
+  source:
+    repoURL: https://github.com/ReignnRule11/zion8-
+    targetRevision: main
+    path: infrastructure/kubernetes/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: zion8
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,54 @@
+name: zion8-apps
+
+services:
+  api:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/api.Dockerfile
+    image: zion8/api:local
+    ports:
+      - '4000:4000'
+    env_file:
+      - ../../../apps/api/.env
+    environment:
+      PORT: '4000'
+      OUTBOX_RELAY_ENABLED: 'false'
+      MEMORY_WORKER_ENABLED: 'false'
+      AI_WORKER_ENABLED: 'false'
+      SERMON_WORKER_ENABLED: 'false'
+      NOTIFICATION_WORKER_ENABLED: 'false'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  workers:
+    image: zion8/api:local
+    env_file:
+      - ../../../apps/api/.env
+    environment:
+      PORT: '4000'
+      OUTBOX_RELAY_ENABLED: 'true'
+      MEMORY_WORKER_ENABLED: 'true'
+      AI_WORKER_ENABLED: 'true'
+      SERMON_WORKER_ENABLED: 'true'
+      NOTIFICATION_WORKER_ENABLED: 'true'
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/web.Dockerfile
+    image: zion8/web:local
+    ports:
+      - '3000:3000'
+    environment:
+      API_INTERNAL_URL: http://api:4000
+      APP_BASE_URL: http://localhost:3000
+      API_VERSION: '1'
+    depends_on:
+      api:
+        condition: service_healthy

@@ -3,6 +3,7 @@ import type { NextConfig } from 'next';
 const apiOrigin = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
   allowedDevOrigins: ['*.monkeycode-ai.live'],

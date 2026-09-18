@@ -134,15 +134,17 @@ that the workspace is built on, `docs/architecture/MEMORY_ENGINE.md` for the arc
 `docs/architecture/ACCOUNTING.md` for the ledger, giving, payroll, and reports,
 `docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it,
 `docs/architecture/NOTIFICATIONS.md` for templates, campaigns, durable delivery, and the in-app inbox,
-`docs/architecture/MOBILE.md` for the Flutter client (offline-first, Riverpod, Hive), and
-`docs/architecture/DASHBOARD.md` for the permission-gated executive home that composes those APIs.
+`docs/architecture/MOBILE.md` for the Flutter client (offline-first, Riverpod, Hive),
+`docs/architecture/DASHBOARD.md` for the permission-gated executive home that composes those APIs, and
+`docs/architecture/DEVOPS.md` for GitOps, blue-green on EKS, secrets, SLO, DR, and cost.
 
 ## Observability
 
 Structured JSON logs via Pino, correlated by a request id propagated through
 `AsyncLocalStorage`. Every log line carries the request id, and where applicable the tenant and
 user ids, so a request can be traced across middleware, guards, use cases, and persistence
-without ad-hoc instrumentation.
+without ad-hoc instrumentation. Production ships those lines through the OpenTelemetry collector
+to Grafana, with SLOs and runbooks in `docs/architecture/DEVOPS.md` and `docs/runbooks/`.
 
 ## API conventions
 

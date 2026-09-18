@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: ghcr.io/reignnrule11/zion8-api
+    newTag: main
+  - name: ghcr.io/reignnrule11/zion8-web
+    newTag: main
+  - name: ghcr.io/reignnrule11/zion8-migrate
+    newTag: main
+patches:
+  - target:
+      kind: ExternalSecret
+      name: zion8-api
+    patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: zion8-staging/api
+  - target:
+      kind: ExternalSecret
+      name: zion8-web
+    patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: zion8-staging/web
+  - target:
+      kind: Ingress
+      name: zion8
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging.zion8.example

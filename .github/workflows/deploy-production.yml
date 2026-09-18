@@ -1,0 +1,54 @@
+name: Deploy production
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag
+        required: true
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  promote:
+    name: Blue-green production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ref=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pin production tags
+        run: |
+          tag="${{ steps.tag.outputs.ref }}"
+          sed -i "s|newTag: .*|newTag: ${tag}|" infrastructure/kubernetes/overlays/production/kustomization.yaml
+
+      - name: Commit overlay
+        run: |
+          git config user.name "zion8-bot"
+          git config user.email "bot@zion8.invalid"
+          git add infrastructure/kubernetes/overlays/production/kustomization.yaml
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(k8s): point production at ${{ steps.tag.outputs.ref }}"
+          git push origin HEAD:main
+
+      - name: Record
+        run: |
+          echo "Argo CD syncs production. Pre-sync migrate Job, then Argo Rollouts blue-green."
+          echo "Abort returns traffic to the previous ReplicaSet automatically."
