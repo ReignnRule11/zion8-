@@ -32,7 +32,8 @@ modules with genuinely different scaling and availability profiles.
 ```
                     +-------------------------------+
    Web (Next.js)    |                               |
-   Mobile (Flutter) |        API Gateway            |
+   Mobile (Flutter, |        API Gateway            |
+    offline-first)  |                               |
    Integrations     |      /api/v1 (NestJS)         |
                     +---------------+---------------+
                                     |
@@ -129,8 +130,9 @@ See `docs/architecture/AUTHENTICATION.md` for the full authentication model,
 registration to a working workspace, `docs/architecture/MEMBERSHIP.md` for the membership domain
 that the workspace is built on, `docs/architecture/MEMORY_ENGINE.md` for the archive,
 `docs/architecture/SERMON.md` for publishing and the study surface,
-`docs/architecture/ACCOUNTING.md` for the ledger, giving, payroll, and reports, and
-`docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it.
+`docs/architecture/ACCOUNTING.md` for the ledger, giving, payroll, and reports,
+`docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it, and
+`docs/architecture/MOBILE.md` for the Flutter client (offline-first, Riverpod, Hive).
 
 ## Observability
 
