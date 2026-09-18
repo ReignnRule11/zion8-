@@ -7,6 +7,7 @@ import {
   GivingWidget,
   GrowthWidget,
   KpiTile,
+  NotificationsWidget,
   RecentActivityWidget,
   UnavailableWidget,
   UpcomingSessionsWidget,
@@ -153,11 +154,18 @@ export default async function HomeDashboardPage({
         {showArchive && data.archive ? (
           <ArchiveTimelineWidget items={data.archive.items} />
         ) : null}
+
+        {showNotifications && data.campaigns ? (
+          <NotificationsWidget
+            campaigns={data.campaigns.items}
+            unreadCount={data.inbox?.total ?? 0}
+          />
+        ) : null}
       </section>
 
       {showActivity ? <RecentActivityWidget items={activity} /> : null}
 
-      {showPrayer || showEvents || showAi || showNotifications ? (
+      {showPrayer || showEvents || showAi ? (
         <section aria-label="Capabilities not yet served over HTTP" className="grid gap-6 lg:grid-cols-2">
           {showPrayer ? (
             <UnavailableWidget
@@ -178,13 +186,6 @@ export default async function HomeDashboardPage({
               id="widget-ai"
               title="AI insights"
               reason="Insight contracts exist, but the API has no HTTP controller for prayer insights or recommendations yet."
-            />
-          ) : null}
-          {showNotifications ? (
-            <UnavailableWidget
-              id="widget-notifications"
-              title="Notifications"
-              reason="Notifications today send mail and SMS. There is no inbox list for a leader to read here."
             />
           ) : null}
         </section>

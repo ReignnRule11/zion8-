@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import {
   AttendanceSessionKind,
   type AttendanceSessionSummary,
+  type NotificationCampaign,
   type VolunteerRoleSummary,
 } from '@zion8/contracts';
 import {
@@ -337,6 +338,50 @@ export function RecentActivityWidget({ items }: { items: ActivityItem[] }) {
                   </p>
                 </div>
                 <span className="shrink-0 text-xs text-slate-500">{formatDate(item.at)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </WidgetFrame>
+  );
+}
+
+export function NotificationsWidget({
+  campaigns,
+  unreadCount,
+}: {
+  campaigns: NotificationCampaign[];
+  unreadCount: number;
+}) {
+  return (
+    <WidgetFrame
+      id="widget-notifications"
+      title="Notifications"
+      description={
+        unreadCount > 0
+          ? `${unreadCount} unread in-app ${unreadCount === 1 ? 'message' : 'messages'}.`
+          : 'Recent campaigns and your in-app inbox.'
+      }
+      href="/notifications"
+    >
+      {campaigns.length === 0 ? (
+        <EmptyState message="No campaigns yet." hint="Draft a campaign to reach the directory." />
+      ) : (
+        <ul className="divide-y divide-white/10">
+          {campaigns.slice(0, 5).map((campaign) => (
+            <li key={campaign.id}>
+              <Link
+                href={`/notifications/${campaign.id}`}
+                className="flex items-center justify-between gap-3 py-2.5 transition hover:text-zion-100"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{campaign.name}</p>
+                  <p className="truncate text-xs text-slate-500">
+                    {humanize(campaign.channel)} · {campaign.sentCount}/{campaign.recipientCount} sent
+                  </p>
+                </div>
+                <StatusBadge status={campaign.status} />
               </Link>
             </li>
           ))}

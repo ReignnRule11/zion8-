@@ -46,6 +46,17 @@ import {
   memberPageSchema,
   memberProfileSchema,
   memberResponseSchema,
+  notificationAnalyticsSchema,
+  notificationAudiencePageSchema,
+  notificationAudiencePreviewSchema,
+  notificationAudienceSchema,
+  notificationCampaignPageSchema,
+  notificationCampaignSchema,
+  notificationDeviceSchema,
+  notificationMessagePageSchema,
+  notificationMessageSchema,
+  notificationTemplatePageSchema,
+  notificationTemplateSchema,
   memoryArtifactDownloadSchema,
   memoryArtifactPageSchema,
   memoryArtifactResponseSchema,
@@ -197,6 +208,31 @@ import {
   type MemberUpdateRequest,
   type MemoryArtifactCreateRequest,
   type MemoryArtifactDownload,
+  type NotificationAnalytics,
+  type NotificationAnalyticsQuery,
+  type NotificationAudience,
+  type NotificationAudienceCreateRequest,
+  type NotificationAudienceListQuery,
+  type NotificationAudiencePage,
+  type NotificationAudiencePreview,
+  type NotificationAudienceUpdateRequest,
+  type NotificationCampaign,
+  type NotificationCampaignCreateRequest,
+  type NotificationCampaignListQuery,
+  type NotificationCampaignPage,
+  type NotificationCampaignScheduleRequest,
+  type NotificationCampaignUpdateRequest,
+  type NotificationDevice,
+  type NotificationDeviceRegisterRequest,
+  type NotificationInboxListQuery,
+  type NotificationMessage,
+  type NotificationMessageListQuery,
+  type NotificationMessagePage,
+  type NotificationTemplate,
+  type NotificationTemplateCreateRequest,
+  type NotificationTemplateListQuery,
+  type NotificationTemplatePage,
+  type NotificationTemplateUpdateRequest,
   type MemoryArtifactLinkRequest,
   type MemoryArtifactListQuery,
   type MemoryArtifactPage,
@@ -2442,6 +2478,265 @@ export const api = {
       method: 'GET',
       path: `/accounting/reports${toQuery(query)}`,
       schema: reportSchema,
+      token,
+    });
+  },
+
+  createNotificationTemplate(
+    token: string,
+    input: NotificationTemplateCreateRequest,
+  ): Promise<NotificationTemplate> {
+    return apiRequest({
+      method: 'POST',
+      path: '/notifications/templates',
+      schema: notificationTemplateSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listNotificationTemplates(
+    token: string,
+    query?: NotificationTemplateListQuery,
+  ): Promise<NotificationTemplatePage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/templates${toQuery(query)}`,
+      schema: notificationTemplatePageSchema,
+      token,
+    });
+  },
+
+  getNotificationTemplate(token: string, templateId: string): Promise<NotificationTemplate> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/templates/${templateId}`,
+      schema: notificationTemplateSchema,
+      token,
+    });
+  },
+
+  updateNotificationTemplate(
+    token: string,
+    templateId: string,
+    input: NotificationTemplateUpdateRequest,
+  ): Promise<NotificationTemplate> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/notifications/templates/${templateId}`,
+      schema: notificationTemplateSchema,
+      body: input,
+      token,
+    });
+  },
+
+  createNotificationAudience(
+    token: string,
+    input: NotificationAudienceCreateRequest,
+  ): Promise<NotificationAudience> {
+    return apiRequest({
+      method: 'POST',
+      path: '/notifications/audiences',
+      schema: notificationAudienceSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listNotificationAudiences(
+    token: string,
+    query?: NotificationAudienceListQuery,
+  ): Promise<NotificationAudiencePage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/audiences${toQuery(query)}`,
+      schema: notificationAudiencePageSchema,
+      token,
+    });
+  },
+
+  getNotificationAudience(token: string, audienceId: string): Promise<NotificationAudience> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/audiences/${audienceId}`,
+      schema: notificationAudienceSchema,
+      token,
+    });
+  },
+
+  previewNotificationAudience(
+    token: string,
+    audienceId: string,
+  ): Promise<NotificationAudiencePreview> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/audiences/${audienceId}/preview`,
+      schema: notificationAudiencePreviewSchema,
+      token,
+    });
+  },
+
+  updateNotificationAudience(
+    token: string,
+    audienceId: string,
+    input: NotificationAudienceUpdateRequest,
+  ): Promise<NotificationAudience> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/notifications/audiences/${audienceId}`,
+      schema: notificationAudienceSchema,
+      body: input,
+      token,
+    });
+  },
+
+  createNotificationCampaign(
+    token: string,
+    input: NotificationCampaignCreateRequest,
+  ): Promise<NotificationCampaign> {
+    return apiRequest({
+      method: 'POST',
+      path: '/notifications/campaigns',
+      schema: notificationCampaignSchema,
+      body: input,
+      token,
+    });
+  },
+
+  listNotificationCampaigns(
+    token: string,
+    query?: NotificationCampaignListQuery,
+  ): Promise<NotificationCampaignPage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/campaigns${toQuery(query)}`,
+      schema: notificationCampaignPageSchema,
+      token,
+    });
+  },
+
+  getNotificationCampaign(token: string, campaignId: string): Promise<NotificationCampaign> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/campaigns/${campaignId}`,
+      schema: notificationCampaignSchema,
+      token,
+    });
+  },
+
+  updateNotificationCampaign(
+    token: string,
+    campaignId: string,
+    input: NotificationCampaignUpdateRequest,
+  ): Promise<NotificationCampaign> {
+    return apiRequest({
+      method: 'PATCH',
+      path: `/notifications/campaigns/${campaignId}`,
+      schema: notificationCampaignSchema,
+      body: input,
+      token,
+    });
+  },
+
+  sendNotificationCampaign(token: string, campaignId: string): Promise<NotificationCampaign> {
+    return apiRequest({
+      method: 'POST',
+      path: `/notifications/campaigns/${campaignId}/send`,
+      schema: notificationCampaignSchema,
+      token,
+    });
+  },
+
+  scheduleNotificationCampaign(
+    token: string,
+    campaignId: string,
+    input: NotificationCampaignScheduleRequest,
+  ): Promise<NotificationCampaign> {
+    return apiRequest({
+      method: 'POST',
+      path: `/notifications/campaigns/${campaignId}/schedule`,
+      schema: notificationCampaignSchema,
+      body: input,
+      token,
+    });
+  },
+
+  cancelNotificationCampaign(token: string, campaignId: string): Promise<NotificationCampaign> {
+    return apiRequest({
+      method: 'POST',
+      path: `/notifications/campaigns/${campaignId}/cancel`,
+      schema: notificationCampaignSchema,
+      token,
+    });
+  },
+
+  listNotificationMessages(
+    token: string,
+    campaignId: string,
+    query?: NotificationMessageListQuery,
+  ): Promise<NotificationMessagePage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/campaigns/${campaignId}/messages${toQuery(query)}`,
+      schema: notificationMessagePageSchema,
+      token,
+    });
+  },
+
+  getNotificationCampaignAnalytics(
+    token: string,
+    campaignId: string,
+  ): Promise<NotificationAnalytics> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/campaigns/${campaignId}/analytics`,
+      schema: notificationAnalyticsSchema,
+      token,
+    });
+  },
+
+  getNotificationAnalytics(
+    token: string,
+    query?: NotificationAnalyticsQuery,
+  ): Promise<NotificationAnalytics> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/analytics${toQuery(query)}`,
+      schema: notificationAnalyticsSchema,
+      token,
+    });
+  },
+
+  listNotificationInbox(
+    token: string,
+    query?: NotificationInboxListQuery,
+  ): Promise<NotificationMessagePage> {
+    return apiRequest({
+      method: 'GET',
+      path: `/notifications/inbox${toQuery(query)}`,
+      schema: notificationMessagePageSchema,
+      token,
+    });
+  },
+
+  markNotificationRead(token: string, messageId: string): Promise<NotificationMessage> {
+    return apiRequest({
+      method: 'POST',
+      path: `/notifications/inbox/${messageId}/read`,
+      schema: notificationMessageSchema,
+      token,
+    });
+  },
+
+  registerNotificationDevice(
+    token: string,
+    input: NotificationDeviceRegisterRequest,
+  ): Promise<NotificationDevice> {
+    return apiRequest({
+      method: 'POST',
+      path: '/notifications/devices',
+      schema: notificationDeviceSchema,
+      body: input,
       token,
     });
   },

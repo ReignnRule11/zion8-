@@ -15,6 +15,7 @@ const LINKS = [
   { href: '/memory', label: 'Memory' },
   { href: '/sermons', label: 'Sermons' },
   { href: '/accounting', label: 'Accounting' },
+  { href: '/notifications', label: 'Notifications' },
 ] as const;
 
 export function SectionNav() {

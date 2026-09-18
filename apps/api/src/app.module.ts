@@ -22,6 +22,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { HealthModule } from './modules/health/health.module';
 import { MembershipModule } from './modules/membership/membership.module';
 import { MemoryModule } from './modules/memory/memory.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { SermonModule } from './modules/sermon/sermon.module';
 import { TenancyModule } from './modules/tenancy/tenancy.module';
@@ -49,6 +50,7 @@ import { TenancyModule } from './modules/tenancy/tenancy.module';
     AiModule,
     SermonModule,
     AccountingModule,
+    NotificationsModule,
     HealthModule,
   ],
   providers: [

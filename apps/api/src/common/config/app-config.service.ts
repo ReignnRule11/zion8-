@@ -278,6 +278,8 @@ export class AppConfigService {
     smsFrom: string;
     twilioAccountSid: string;
     twilioAuthToken: string;
+    whatsappFrom: string;
+    pushEndpoint: string;
   } {
     return {
       emailFrom: this.env.EMAIL_FROM_ADDRESS,
@@ -285,6 +287,16 @@ export class AppConfigService {
       smsFrom: this.env.SMS_FROM_NUMBER,
       twilioAccountSid: this.env.TWILIO_ACCOUNT_SID,
       twilioAuthToken: this.env.TWILIO_AUTH_TOKEN,
+      whatsappFrom: this.env.WHATSAPP_FROM_NUMBER,
+      pushEndpoint: this.env.NOTIFICATION_PUSH_ENDPOINT,
+    };
+  }
+
+  get notificationWorker(): { enabled: boolean; intervalMs: number; batchSize: number } {
+    return {
+      enabled: this.env.NOTIFICATION_WORKER_ENABLED && !this.isTest,
+      intervalMs: this.env.NOTIFICATION_WORKER_INTERVAL_MS,
+      batchSize: this.env.NOTIFICATION_WORKER_BATCH_SIZE,
     };
   }
 }
