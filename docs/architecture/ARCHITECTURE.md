@@ -71,6 +71,7 @@ modules with genuinely different scaling and availability profiles.
 | `memory` | Institutional archive: artifacts, versions, links, tags | Implemented (Phase A) |
 | `sermon` | Publishing, series, study surface, podcast, shares | Implemented |
 | `ai` | Embeddings, semantic search, grounded answers | In progress |
+| `notifications` | Templates, audiences, campaigns, delivery, inbox, analytics | Implemented |
 
 ## Layers inside a module
 
@@ -132,6 +133,7 @@ that the workspace is built on, `docs/architecture/MEMORY_ENGINE.md` for the arc
 `docs/architecture/SERMON.md` for publishing and the study surface,
 `docs/architecture/ACCOUNTING.md` for the ledger, giving, payroll, and reports,
 `docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it,
+`docs/architecture/NOTIFICATIONS.md` for templates, campaigns, durable delivery, and the in-app inbox,
 `docs/architecture/MOBILE.md` for the Flutter client (offline-first, Riverpod, Hive), and
 `docs/architecture/DASHBOARD.md` for the permission-gated executive home that composes those APIs.
 

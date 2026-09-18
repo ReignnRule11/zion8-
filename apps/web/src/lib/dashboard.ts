@@ -12,6 +12,8 @@ import {
   type MeResponse,
   type MemberPage,
   type MemoryArtifactPage,
+  type NotificationCampaignPage,
+  type NotificationMessagePage,
   type Report,
   type SermonPage,
   type VisitorPage,
@@ -60,6 +62,8 @@ export interface DashboardData {
   sermons: SermonPage | null;
   archive: MemoryArtifactPage | null;
   journals: JournalPage | null;
+  campaigns: NotificationCampaignPage | null;
+  inbox: NotificationMessagePage | null;
 }
 
 export function parseDashboardFilters(params: {
@@ -113,6 +117,7 @@ export async function loadDashboard(
   const canVolunteers = can(me, Permission.VOLUNTEER_READ);
   const canSermons = can(me, Permission.SERMON_READ);
   const canMemory = can(me, Permission.MEMORY_READ);
+  const canNotifications = can(me, Permission.NOTIFICATION_READ);
 
   const [
     attendance,
@@ -127,6 +132,8 @@ export async function loadDashboard(
     sermons,
     archive,
     journals,
+    campaigns,
+    inbox,
   ] = await Promise.all([
     loadIf(canAttendance, () =>
       api.listAttendanceSessions(token, {
@@ -207,6 +214,12 @@ export async function loadDashboard(
         to: filters.to,
       }),
     ),
+    loadIf(canNotifications, () =>
+      api.listNotificationCampaigns(token, { limit: STRIP_LIMIT, offset: 0 }),
+    ),
+    loadIf(canNotifications, () =>
+      api.listNotificationInbox(token, { limit: STRIP_LIMIT, offset: 0, unreadOnly: true }),
+    ),
   ]);
 
   return {
@@ -223,6 +236,8 @@ export async function loadDashboard(
     sermons,
     archive,
     journals,
+    campaigns,
+    inbox,
   };
 }
 

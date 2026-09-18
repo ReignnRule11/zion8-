@@ -385,6 +385,44 @@ enum ReconciliationStatus {
   COMPLETED
 }
 
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+  IN_APP
+}
+
+enum NotificationTemplateStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum NotificationCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum NotificationMessageStatus {
+  PENDING
+  SENDING
+  SENT
+  DELIVERED
+  FAILED
+  BLOCKED
+  CANCELLED
+}
+
+enum NotificationDevicePlatform {
+  WEB
+  IOS
+  ANDROID
+}
+
 model Tenant {
   id        String       @id @default(uuid()) @db.Uuid
   slug      String       @unique @db.VarChar(40)
@@ -468,6 +506,12 @@ model Tenant {
   bankTransactions      BankTransaction[]
   bankReconciliations   BankReconciliation[]
 
+  notificationTemplates NotificationTemplate[]
+  notificationAudiences NotificationAudience[]
+  notificationCampaigns NotificationCampaign[]
+  notificationMessages  NotificationMessage[]
+  notificationDevices   NotificationDevice[]
+
   @@map("tenants")
 }
 
@@ -504,6 +548,9 @@ model User {
   subscriptionsSelected TenantSubscription[]    @relation("SubscriptionsSelected")
   memberImportsCreated  MemberImportJob[]       @relation("MemberImportsCreated")
   membersCreated        Member[]                @relation("MembersCreated")
+  notificationCampaigns NotificationCampaign[]  @relation("NotificationCampaignsCreated")
+  notificationMessages  NotificationMessage[]   @relation("NotificationMessagesForUser")
+  notificationDevices   NotificationDevice[]
 
   @@map("users")
 }
@@ -1135,6 +1182,7 @@ model Member {
   documents            MemberDocument[]
   summary              MemberAiSummary?
   visitorsReferred     Visitor[]             @relation("VisitorReferredBy")
+  notificationMessages NotificationMessage[]
 
   @@unique([tenantId, email])
   @@index([tenantId, status])
@@ -2633,4 +2681,136 @@ model BankReconciliation {
 
   @@index([tenantId, bankAccountId, status])
   @@map("bank_reconciliations")
+}
+
+/// Named copy for a channel. Campaigns may reference a template or carry
+/// inline body/subject. Templates are archived, never hard-deleted.
+model NotificationTemplate {
+  id        String                     @id @default(uuid()) @db.Uuid
+  tenantId  String                     @map("tenant_id") @db.Uuid
+  name      String                     @db.VarChar(120)
+  channel   NotificationChannel
+  subject   String?                    @db.VarChar(200)
+  body      String                     @db.Text
+  html      String?                    @db.Text
+  status    NotificationTemplateStatus @default(ACTIVE)
+  createdAt DateTime                   @default(now()) @map("created_at")
+  updatedAt DateTime                   @updatedAt @map("updated_at")
+
+  tenant    Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaigns NotificationCampaign[]
+
+  @@index([tenantId, channel, status])
+  @@index([tenantId, name])
+  @@map("notification_templates")
+}
+
+/// A saved membership filter. Resolution happens at send time against Member.
+model NotificationAudience {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(120)
+  description String?  @db.Text
+  filter      Json     @default("{}") @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaigns NotificationCampaign[]
+
+  @@index([tenantId, name])
+  @@map("notification_audiences")
+}
+
+/// A send: template or inline copy, channel, audience snapshot, schedule.
+model NotificationCampaign {
+  id              String                     @id @default(uuid()) @db.Uuid
+  tenantId        String                     @map("tenant_id") @db.Uuid
+  name            String                     @db.VarChar(120)
+  channel         NotificationChannel
+  status          NotificationCampaignStatus @default(DRAFT)
+  templateId      String?                    @map("template_id") @db.Uuid
+  subject         String?                    @db.VarChar(200)
+  body            String                     @db.Text
+  html            String?                    @db.Text
+  audienceId      String?                    @map("audience_id") @db.Uuid
+  filter          Json                       @default("{}") @db.JsonB
+  audienceSnapshot Json                      @default("[]") @map("audience_snapshot") @db.JsonB
+  scheduledAt     DateTime?                  @map("scheduled_at")
+  sentAt          DateTime?                  @map("sent_at")
+  cancelledAt     DateTime?                  @map("cancelled_at")
+  createdByUserId String?                    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime                   @default(now()) @map("created_at")
+  updatedAt       DateTime                   @updatedAt @map("updated_at")
+
+  tenant    Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template  NotificationTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  audience  NotificationAudience?   @relation(fields: [audienceId], references: [id], onDelete: SetNull)
+  createdBy User?                   @relation("NotificationCampaignsCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  messages  NotificationMessage[]
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, channel])
+  @@index([tenantId, scheduledAt])
+  @@map("notification_campaigns")
+}
+
+/// One recipient on one channel. The delivery job itself: claimed with
+/// `FOR UPDATE SKIP LOCKED`, retried with a bounded attempt count, BLOCKED
+/// when a provider or address is missing.
+model NotificationMessage {
+  id            String                   @id @default(uuid()) @db.Uuid
+  tenantId      String                   @map("tenant_id") @db.Uuid
+  campaignId    String                   @map("campaign_id") @db.Uuid
+  memberId      String?                  @map("member_id") @db.Uuid
+  userId        String?                  @map("user_id") @db.Uuid
+  channel       NotificationChannel
+  status        NotificationMessageStatus @default(PENDING)
+  address       String?                  @db.VarChar(320)
+  subject       String?                  @db.VarChar(200)
+  body          String                   @db.Text
+  html          String?                  @db.Text
+  attempts      Int                      @default(0)
+  maxAttempts   Int                      @default(5) @map("max_attempts")
+  availableAt   DateTime                 @default(now()) @map("available_at")
+  startedAt     DateTime?                @map("started_at")
+  sentAt        DateTime?                @map("sent_at")
+  readAt        DateTime?                @map("read_at")
+  provider      String?                  @db.VarChar(60)
+  blockedReason String?                  @map("blocked_reason") @db.VarChar(120)
+  lastError     String?                  @map("last_error") @db.Text
+  result        Json?                    @db.JsonB
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+
+  tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaign NotificationCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  member   Member?               @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  user     User?                 @relation("NotificationMessagesForUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, availableAt])
+  @@index([tenantId, campaignId, status])
+  @@index([tenantId, userId, readAt])
+  @@index([tenantId, memberId])
+  @@map("notification_messages")
+}
+
+/// A push token for a linked user. Unique per tenant+token so re-registering
+/// the same device updates lastSeenAt instead of duplicating.
+model NotificationDevice {
+  id         String                     @id @default(uuid()) @db.Uuid
+  tenantId   String                     @map("tenant_id") @db.Uuid
+  userId     String                     @map("user_id") @db.Uuid
+  platform   NotificationDevicePlatform
+  token      String                     @db.VarChar(512)
+  lastSeenAt DateTime                   @default(now()) @map("last_seen_at")
+  createdAt  DateTime                   @default(now()) @map("created_at")
+  updatedAt  DateTime                   @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, token])
+  @@index([tenantId, userId])
+  @@map("notification_devices")
 }

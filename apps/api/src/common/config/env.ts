@@ -76,6 +76,14 @@ export const envSchema = z.object({
   SMS_FROM_NUMBER: z.string().default(''),
   TWILIO_ACCOUNT_SID: z.string().default(''),
   TWILIO_AUTH_TOKEN: z.string().default(''),
+  WHATSAPP_FROM_NUMBER: z.string().default(''),
+  NOTIFICATION_PUSH_ENDPOINT: z.string().default(''),
+
+  // Campaign delivery. Messages are claimed with SKIP LOCKED by a poller.
+  // Disabled under tests so background timers never race assertions.
+  NOTIFICATION_WORKER_ENABLED: booleanString('true'),
+  NOTIFICATION_WORKER_INTERVAL_MS: z.coerce.number().int().min(250).default(5000),
+  NOTIFICATION_WORKER_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(20),
 
   // Member AI summaries. When no base URL is configured the deterministic
   // rule-based provider is used, which needs no network access. These are

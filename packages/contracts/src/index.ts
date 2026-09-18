@@ -21,4 +21,5 @@ export * from './memory';
 export * from './ai';
 export * from './sermon';
 export * from './accounting';
+export * from './notifications';
 export * from './health/health.schemas';

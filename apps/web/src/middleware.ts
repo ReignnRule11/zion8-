@@ -30,5 +30,7 @@ export const config = {
     '/sermons',
     '/accounting/:path*',
     '/accounting',
+    '/notifications/:path*',
+    '/notifications',
   ],
 };
