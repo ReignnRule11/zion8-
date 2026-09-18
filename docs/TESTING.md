@@ -11,6 +11,8 @@ drift into the wrong tier.
 | Unit | `apps/api/src/**/*.test.ts` | in-process, no I/O | Pure logic: token signing and verification, password hashing, guard decisions, policy evaluation, environment parsing. |
 | End-to-end | `apps/api/test/**/*.e2e.test.ts` | real Postgres and Redis | Whole HTTP request lifecycles against real infrastructure, including RLS, migrations, rotation, and revocation. |
 | Web | `apps/web` build | Next.js build | Types, linting, and that every route compiles and renders. |
+| Mobile unit | `apps/mobile/test` | `flutter test` | Auth redirects, outbox backoff, cache keying, error mapping, widget semantics. |
+| Mobile integration | `apps/mobile/integration_test` | `flutter test integration_test` | Cold start through login to the home shell against a fake API. |
 
 ## Commands
 
@@ -26,6 +28,9 @@ pnpm typecheck
 pnpm lint
 pnpm test
 pnpm build
+
+# Flutter unit and widget tests
+cd apps/mobile && flutter test
 ```
 
 ## End-to-end harness

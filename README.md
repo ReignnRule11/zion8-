@@ -57,7 +57,8 @@ See `docs/architecture/ARCHITECTURE.md` for the detailed design,
 `docs/architecture/CHURCH_ONBOARDING.md` for the church onboarding journey,
 `docs/architecture/MEMBERSHIP.md` for the membership domain,
 `docs/architecture/MEMORY_ENGINE.md` for the Digital Memory Engine,
-`docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it, and
+`docs/architecture/ZION_AI.md` for the retrieval and reasoning layer over it,
+`docs/architecture/MOBILE.md` for the Flutter client, and
 `docs/architecture/REPOSITORY_STRUCTURE.md` for how the repository is organized, worked in, and
 scaled.
 
@@ -67,6 +68,7 @@ scaled.
 apps/
   api/                 NestJS API (modular monolith, versioned under /api/v1)
   web/                 Next.js 15 App Router frontend
+  mobile/              Flutter client (feature-first, Riverpod, offline-first)
 packages/
   contracts/           Canonical Zod schemas shared by every client
   config/              Shared TypeScript configuration presets
